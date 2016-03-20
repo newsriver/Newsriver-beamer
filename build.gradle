@@ -1,0 +1,29 @@
+version '0.1'
+
+apply plugin: 'java'
+apply plugin: "war"
+apply plugin: "jetty"
+
+
+sourceCompatibility = 1.5
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
+
+
+dependencies {
+    compile project(':Newsriver-lib')
+    compile 'org.eclipse.jetty:jetty-server:9.3.8.v20160314'
+    compile 'org.eclipse.jetty:jetty-servlet:9.3.8.v20160314'
+    compile 'org.eclipse.jetty.websocket:websocket-server:9.3.8.v20160314'
+}
+
+httpPort = 8080
+stopPort = 9080
+stopKey = "stopKey"
