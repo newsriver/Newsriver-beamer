@@ -2,49 +2,48 @@ package ch.newsriver.beamer;
 
 
 import java.io.IOException;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
-import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
-import org.eclipse.jetty.websocket.api.annotations.WebSocket;
+
+
+import javax.websocket.*;
+import javax.websocket.server.ServerEndpoint;
 
 /**
  * Created by eliapalme on 20/03/16.
  */
 
 
-@WebSocket
-public  abstract class BeamerWebSocketHandler extends WebSocketHandler{
+@ServerEndpoint("/streem")
+public  class BeamerWebSocketHandler{
 
 
 
-    @OnWebSocketClose
-    public void onClose(int statusCode, String reason) {
-        System.out.println("Close: statusCode=" + statusCode + ", reason=" + reason);
-    }
 
-    @OnWebSocketError
-    public void onError(Throwable t) {
 
-        System.out.println("Error: " + t.getMessage());
-    }
+        @OnOpen
+        public void onOpen(Session session) {
 
-    @OnWebSocketConnect
-    public void onConnect(Session session) {
-        System.out.println("Connect: " + session.getRemoteAddress().getAddress());
-        try {
-            session.getRemote().sendString("Hello Webbrowser");
-        } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("WebSocket opened: " + session.getId());
+
+            BeamerMain.beamer.activeSessions.add(session);
         }
-    }
 
-    @OnWebSocketMessage
-    public void onMessage(String message) {
+        @OnMessage
+        public void onMessage(String txt, Session session) throws IOException {
 
-        System.out.println("Message: " + message);
-    }
+            System.out.println("Message received: " + txt);
+
+            session.getBasicRemote().sendText(txt.toUpperCase());
+
+        }
+
+
+
+        @OnClose
+        public void onClose(CloseReason reason, Session session) {
+            BeamerMain.beamer.activeSessions.remove(session);
+            System.out.println("Closing a WebSocket due to " + reason.getReasonPhrase());
+
+        }
 
 
 }

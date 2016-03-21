@@ -5,7 +5,8 @@ apply plugin: "war"
 apply plugin: "jetty"
 
 
-sourceCompatibility = 1.5
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 repositories {
     mavenCentral()
@@ -21,7 +22,12 @@ dependencies {
     compile project(':Newsriver-lib')
     compile 'org.eclipse.jetty:jetty-server:9.3.8.v20160314'
     compile 'org.eclipse.jetty:jetty-servlet:9.3.8.v20160314'
-    compile 'org.eclipse.jetty.websocket:websocket-server:9.3.8.v20160314'
+    compile 'org.eclipse.jetty.websocket:javax-websocket-server-impl:9.3.8.v20160314'
+    compile 'javax.websocket:javax.websocket-api:1.1'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.7.2'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.7.2'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.7.2'
+    compile 'org.apache.kafka:kafka-clients:0.9.0.0'
 }
 
 httpPort = 8080
