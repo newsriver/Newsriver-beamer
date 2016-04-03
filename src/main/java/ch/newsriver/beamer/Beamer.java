@@ -38,7 +38,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     public List<Session> activeSessions;
 
 
-    public Beamer() throws IOException {
+    public Beamer() {
 
         super(POOL_SIZE, QUEUE_SIZE);
         run = true;
@@ -91,6 +91,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                         CompletableFuture<String> taks = CompletableFuture.supplyAsync(() ->{
                             try {
                                 session.getBasicRemote().sendText(record.value());
+                                BeamerMain.addMetric("Articles streamed", 1);
                             }catch (IOException e){
                                 activeSessions.remove(session);
                             }

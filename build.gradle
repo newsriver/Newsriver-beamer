@@ -1,12 +1,13 @@
 version '0.1'
 
 apply plugin: 'java'
-apply plugin: "war"
-apply plugin: "jetty"
+apply plugin: 'application'
 
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
+mainClassName = 'ch.newsriver.beamer.BeamerMain'
 
 repositories {
     mavenCentral()
@@ -16,7 +17,11 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
+processResources {
 
+    filesMatching('**/version.properties') {expand projectVersion: project.version}
+
+}
 
 dependencies {
     compile project(':Newsriver-lib')
@@ -30,6 +35,15 @@ dependencies {
     compile 'org.apache.kafka:kafka-clients:0.9.0.0'
 }
 
-httpPort = 8080
-stopPort = 9080
-stopKey = "stopKey"
+
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Newsriver Beamer',
+                'Implementation-Version': version,
+                'Main-Class': 'ch.newsriver.beamer.BeamerMain'
+    }
+    baseName = project.name
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}

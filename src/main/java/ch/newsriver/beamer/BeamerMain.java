@@ -1,6 +1,7 @@
 package ch.newsriver.beamer;
 
 import ch.newsriver.executable.Main;
+import org.apache.commons.cli.Options;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -10,6 +11,10 @@ import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainer
 import org.eclipse.jetty.websocket.server.WebSocketHandler;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
+import javax.servlet.ServletException;
+import javax.websocket.DeploymentException;
+import java.util.HashMap;
+import java.util.SortedMap;
 
 
 /**
@@ -17,31 +22,75 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
  */
 
 
-public class BeamerMain{
+public class BeamerMain extends  Main{
 
-    public static  Beamer beamer;
+    public static Beamer beamer;
+    private Server server;
+    private static final int DEFAUTL_PORT = 8080;
 
 
-    public static void main(String[] args) throws Exception {
-        Server server = new Server(8080);
+    public static void main(String[] args){
+
+        Options options = new Options();
+
+        options.addOption("f","pidfile", true, "pid file location");
+        options.addOption(org.apache.commons.cli.Option.builder("p").longOpt("port").hasArg().type(Number.class).desc("port number").build());
+
+        new BeamerMain(args,options);
+
+    }
+
+
+
+    public int getDefaultPort(){
+        return DEFAUTL_PORT;
+    }
+
+    public  BeamerMain(String[] args,Options options){
+
+        super(args, options, false);
+
+    }
+
+
+    @Override
+    public void shutdown() {
+        try
+        {
+            server.stop();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void start() {
+
+        server = new Server(getPort());
 
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
         server.setHandler(context);
 
-        // Add javax.websocket support
-        ServerContainer container = WebSocketServerContainerInitializer.configureContext(context);
+        try {
+            // Add javax.websocket support
+            ServerContainer container = WebSocketServerContainerInitializer.configureContext(context);
+            // Add echo endpoint to server container
+            container.addEndpoint(BeamerWebSocketHandler.class);
+        }catch (ServletException e) {
 
-        // Add echo endpoint to server container
-        container.addEndpoint(BeamerWebSocketHandler.class);
+        }catch (DeploymentException e){
+
+        }
 
 
-        ServletHolder defHolder = new ServletHolder("default",new DefaultServlet());
+        ServletHolder defHolder = new ServletHolder("default",new ConsoleServlet(metrics));
         defHolder.setInitParameter("dirAllowed","true");
         context.addServlet(defHolder,"/");
-
-
         beamer = new Beamer();
+
 
         try
         {
@@ -54,8 +103,4 @@ public class BeamerMain{
             e.printStackTrace();
         }
     }
-
-
-
-
 }

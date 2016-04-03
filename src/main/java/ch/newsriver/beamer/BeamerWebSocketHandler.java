@@ -12,26 +12,17 @@ import javax.websocket.server.ServerEndpoint;
  */
 
 
-@ServerEndpoint("/streem")
+@ServerEndpoint("/webSocket")
 public  class BeamerWebSocketHandler{
-
-
-
 
 
         @OnOpen
         public void onOpen(Session session) {
-
-            System.out.println("WebSocket opened: " + session.getId());
-
             BeamerMain.beamer.activeSessions.add(session);
         }
 
         @OnMessage
         public void onMessage(String txt, Session session) throws IOException {
-
-            System.out.println("Message received: " + txt);
-
             session.getBasicRemote().sendText(txt.toUpperCase());
 
         }
@@ -41,8 +32,6 @@ public  class BeamerWebSocketHandler{
         @OnClose
         public void onClose(CloseReason reason, Session session) {
             BeamerMain.beamer.activeSessions.remove(session);
-            System.out.println("Closing a WebSocket due to " + reason.getReasonPhrase());
-
         }
 
 
