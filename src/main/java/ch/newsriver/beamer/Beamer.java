@@ -1,7 +1,10 @@
 package ch.newsriver.beamer;
 
 
-import ch.newsriver.executable.BatchInterruptibleWithinExecutorPool;
+import ch.newsriver.data.content.Article;
+import ch.newsriver.data.content.ArticleFactory;
+import ch.newsriver.data.content.ArticleRequest;
+import ch.newsriver.executable.poolExecution.BatchInterruptibleWithinExecutorPool;
 import ch.newsriver.util.http.HttpClientPool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -15,10 +18,8 @@ import javax.websocket.Session;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
+import java.time.Duration;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -28,21 +29,22 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
     private static final Logger logger = LogManager.getLogger(Beamer.class);
     private boolean run = false;
-    private static final int BATCH_SIZE = 250;
-    private static final int POOL_SIZE = 50;
-    private static final int QUEUE_SIZE = 500;
+    private static int  MAX_EXECUTUION_DURATION = 120;
+    private int batchSize;
+
 
     private static final ObjectMapper mapper = new ObjectMapper();
     Consumer<String, String> consumer;
 
-    public List<Session> activeSessions;
+    public Map<Session,ArticleRequest> activeSessions;
 
 
-    public Beamer() {
+    public Beamer(int poolSize, int batchSize, int queueSize) {
 
-        super(POOL_SIZE, QUEUE_SIZE);
+        super(poolSize, queueSize, Duration.ofSeconds(MAX_EXECUTUION_DURATION));
+        this.batchSize = batchSize;
         run = true;
-        activeSessions = new LinkedList<>();
+        activeSessions = new HashMap<>();
 
         Properties props = new Properties();
         InputStream inputStream = null;
@@ -84,25 +86,34 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
         while (run) {
 
             try {
-                ConsumerRecords<String, String> records = consumer.poll(1000);
+                this.waitFreeBatchExecutors(this.batchSize);
+                ConsumerRecords<String, String> records = consumer.poll(60000);
                 for (ConsumerRecord<String, String> record : records) {
-                    this.waitFreeBatchExecutors(BATCH_SIZE);
-                    for (Session session : activeSessions) {
-                        CompletableFuture<String> taks = CompletableFuture.supplyAsync(() ->{
-                            try {
-                                session.getBasicRemote().sendText(record.value());
-                                BeamerMain.addMetric("Articles streamed", 1);
-                            }catch (IOException e){
-                                activeSessions.remove(session);
+
+                    try {
+                        Article article =  mapper.readValue(record.value(),Article.class);
+                        for (Session session : activeSessions.keySet()) {
+                            ArticleRequest request = activeSessions.get(session);
+                            if(request==null){
+                                continue;
                             }
-                            return  "ok";
-                        });
-
+                            request.setId(article.getId());
+                            if(!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
+                                CompletableFuture<String> taks = CompletableFuture.supplyAsync(() -> {
+                                    try {
+                                        session.getBasicRemote().sendText(record.value());
+                                        BeamerMain.addMetric("Articles streamed", 1);
+                                    } catch (IOException e) {
+                                        activeSessions.remove(session);
+                                    }
+                                    return "ok";
+                                });
+                            }
+                        }
+                    } catch (IOException e) {
+                        logger.fatal("Unable to deserialize articles", e);
                     }
-
                 }
-                Thread.sleep(1000);
-
             } catch (InterruptedException ex) {
                 logger.warn("Miner job interrupted", ex);
                 run = false;

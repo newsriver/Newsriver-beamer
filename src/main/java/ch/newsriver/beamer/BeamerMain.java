@@ -1,6 +1,7 @@
 package ch.newsriver.beamer;
 
 import ch.newsriver.executable.Main;
+import ch.newsriver.executable.poolExecution.MainWithPoolExecutorOptions;
 import org.apache.commons.cli.Options;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
@@ -22,7 +23,7 @@ import java.util.SortedMap;
  */
 
 
-public class BeamerMain extends  Main{
+public class BeamerMain extends MainWithPoolExecutorOptions {
 
     public static Beamer beamer;
     private Server server;
@@ -30,13 +31,7 @@ public class BeamerMain extends  Main{
 
 
     public static void main(String[] args){
-
-        Options options = new Options();
-
-        options.addOption("f","pidfile", true, "pid file location");
-        options.addOption(org.apache.commons.cli.Option.builder("p").longOpt("port").hasArg().type(Number.class).desc("port number").build());
-
-        new BeamerMain(args,options);
+        new BeamerMain(args);
 
     }
 
@@ -46,10 +41,8 @@ public class BeamerMain extends  Main{
         return DEFAUTL_PORT;
     }
 
-    public  BeamerMain(String[] args,Options options){
-
-        super(args, options, false);
-
+    public  BeamerMain(String[] args){
+        super(args, false);
     }
 
 
@@ -89,11 +82,13 @@ public class BeamerMain extends  Main{
         ServletHolder defHolder = new ServletHolder("default",new ConsoleServlet(metrics));
         defHolder.setInitParameter("dirAllowed","true");
         context.addServlet(defHolder,"/");
-        beamer = new Beamer();
+
 
 
         try
         {
+            System.out.println("Threads pool size:" + this.getPoolSize() +"\tbatch size:"+this.getBatchSize()+"\tqueue size:"+this.getBatchSize());
+            beamer = new Beamer(this.getPoolSize(),this.getBatchSize(),this.getQueueSize());
             new Thread(beamer).start();
             server.start();
             server.join();
