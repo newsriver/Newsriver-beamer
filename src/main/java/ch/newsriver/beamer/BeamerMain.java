@@ -1,16 +1,13 @@
 package ch.newsriver.beamer;
 
-import ch.newsriver.executable.Main;
 import ch.newsriver.executable.poolExecution.MainWithPoolExecutorOptions;
-import org.apache.commons.cli.Options;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
-import org.eclipse.jetty.websocket.server.WebSocketHandler;
-import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.servlet.ServletContainer;
 
 import javax.servlet.ServletException;
 import javax.websocket.DeploymentException;
@@ -45,6 +42,9 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
         super(args, false);
     }
 
+    static public HashMap<String, SortedMap<Long, Long>> getMetric(){
+        return  metrics;
+    }
 
     @Override
     public void shutdown() {
@@ -65,13 +65,16 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
 
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
+
+
         server.setHandler(context);
 
         try {
             // Add javax.websocket support
             ServerContainer container = WebSocketServerContainerInitializer.configureContext(context);
             // Add echo endpoint to server container
-            container.addEndpoint(BeamerWebSocketHandler.class);
+            container.addEndpoint(StreemWebSocketHandler.class);
+            container.addEndpoint(LookupWebSocketHandler.class);
         }catch (ServletException e) {
 
         }catch (DeploymentException e){
@@ -79,9 +82,12 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
         }
 
 
-        ServletHolder defHolder = new ServletHolder("default",new ConsoleServlet(metrics));
-        defHolder.setInitParameter("dirAllowed","true");
-        context.addServlet(defHolder,"/");
+        ResourceConfig config = new ResourceConfig();
+        config.packages("ch.newsriver.beamer.servlet");
+        ServletHolder servlet = new ServletHolder(new ServletContainer(config));
+
+        context.addServlet(servlet,"/*");
+
 
 
 

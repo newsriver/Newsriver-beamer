@@ -11,6 +11,8 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -29,14 +31,17 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
     private static final Logger logger = LogManager.getLogger(Beamer.class);
     private boolean run = false;
-    private static int  MAX_EXECUTUION_DURATION = 120;
+    private static int MAX_EXECUTUION_DURATION = 120;
     private int batchSize;
 
 
     private static final ObjectMapper mapper = new ObjectMapper();
     Consumer<String, String> consumer;
+    Producer<String, String> producer;
 
-    public Map<Session,ArticleRequest> activeSessions;
+
+    public Map<Session, ArticleRequest> activeSessionsStreem;
+    public Map<Session, String> activeSessionsLookup;
 
 
     public Beamer(int poolSize, int batchSize, int queueSize) {
@@ -44,7 +49,8 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
         super(poolSize, queueSize, Duration.ofSeconds(MAX_EXECUTUION_DURATION));
         this.batchSize = batchSize;
         run = true;
-        activeSessions = new HashMap<>();
+        activeSessionsStreem = new HashMap<>();
+        activeSessionsLookup = new HashMap<>();
 
         Properties props = new Properties();
         InputStream inputStream = null;
@@ -66,9 +72,9 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
             }
         }
 
-
+        producer = new KafkaProducer(props);
         consumer = new KafkaConsumer(props);
-        consumer.subscribe(Arrays.asList("raw-article"));
+        consumer.subscribe(Arrays.asList("raw-article", "processing-status"));
 
 
     }
@@ -78,6 +84,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
         HttpClientPool.shutdown();
         this.shutdown();
         consumer.close();
+        producer.close();
     }
 
 
@@ -90,28 +97,46 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                 ConsumerRecords<String, String> records = consumer.poll(60000);
                 for (ConsumerRecord<String, String> record : records) {
 
-                    try {
-                        Article article =  mapper.readValue(record.value(),Article.class);
-                        for (Session session : activeSessions.keySet()) {
-                            ArticleRequest request = activeSessions.get(session);
-                            if(request==null){
+                    if (record.topic().equals("raw-article")) {
+                        try {
+                            Article article = mapper.readValue(record.value(), Article.class);
+                            for (Session session : activeSessionsStreem.keySet()) {
+                                ArticleRequest request = activeSessionsStreem.get(session);
+                                if (request == null) {
+                                    continue;
+                                }
+                                request.setId(article.getId());
+                                if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
+                                    CompletableFuture<String> taks = CompletableFuture.supplyAsync(() -> {
+                                        try {
+                                            session.getBasicRemote().sendText(record.value());
+                                            BeamerMain.addMetric("Articles streamed", 1);
+                                        } catch (IOException e) {
+                                            activeSessionsStreem.remove(session);
+                                        }
+                                        return "ok";
+                                    });
+                                }
+                            }
+                        } catch (IOException e) {
+                            logger.fatal("Unable to deserialize articles", e);
+                        }
+                    }
+                    if (record.topic().equals("processing-status")) {
+                        for (Session session : activeSessionsLookup.keySet()) {
+                            if (!session.getId().equals(record.key())) {
                                 continue;
                             }
-                            request.setId(article.getId());
-                            if(!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
-                                CompletableFuture<String> taks = CompletableFuture.supplyAsync(() -> {
-                                    try {
-                                        session.getBasicRemote().sendText(record.value());
-                                        BeamerMain.addMetric("Articles streamed", 1);
-                                    } catch (IOException e) {
-                                        activeSessions.remove(session);
-                                    }
-                                    return "ok";
-                                });
+
+                            try {
+                                session.getBasicRemote().sendText(record.value());
+                                BeamerMain.addMetric("Status streamed", 1);
+                            } catch (IOException e) {
+                                activeSessionsLookup.remove(session);
                             }
+
+
                         }
-                    } catch (IOException e) {
-                        logger.fatal("Unable to deserialize articles", e);
                     }
                 }
             } catch (InterruptedException ex) {

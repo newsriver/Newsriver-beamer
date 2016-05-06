@@ -19,8 +19,8 @@ import javax.websocket.server.ServerEndpoint;
  */
 
 
-@ServerEndpoint("/webSocket")
-public  class BeamerWebSocketHandler{
+@ServerEndpoint("/streamWebSocket")
+public  class StreemWebSocketHandler {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -32,7 +32,7 @@ public  class BeamerWebSocketHandler{
         @OnOpen
         public void onOpen(Session session) {
 
-            BeamerMain.beamer.activeSessions.put(session,null);
+            BeamerMain.beamer.activeSessionsStreem.put(session,null);
         }
 
         @OnMessage
@@ -40,10 +40,8 @@ public  class BeamerWebSocketHandler{
             session.getBasicRemote().sendText(txt.toUpperCase());
             try {
 
-
-
                 ArticleRequest searchRequest =  mapper.readValue(txt,ArticleRequest.class);
-                BeamerMain.beamer.activeSessions.put(session,searchRequest);
+                BeamerMain.beamer.activeSessionsStreem.put(session,searchRequest);
                 ObjectWriter w = mapper.writerWithView(Article.ArticleViews.PublicView.class);
                 List<Article> articles = ArticleFactory.getInstance().searchArticles(searchRequest);
                 for(Article article : articles){
@@ -56,10 +54,9 @@ public  class BeamerWebSocketHandler{
         }
 
 
-
         @OnClose
         public void onClose(CloseReason reason, Session session) {
-            BeamerMain.beamer.activeSessions.remove(session);
+            BeamerMain.beamer.activeSessionsStreem.remove(session);
         }
 
 
