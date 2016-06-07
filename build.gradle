@@ -1,4 +1,4 @@
-version '0.1'
+version '0.1.1'
 
 apply plugin: 'java'
 apply plugin: 'application'
@@ -42,7 +42,7 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.7.2'
     compile 'com.fasterxml.jackson.core:jackson-core:2.7.2'
     compile 'com.fasterxml.jackson.core:jackson-annotations:2.7.2'
-    compile 'org.apache.kafka:kafka-clients:0.9.0.1'
+    compile 'org.apache.kafka:kafka-clients:0.10.0.0'
 }
 
 
@@ -53,6 +53,8 @@ task fatJar(type: Jar) {
                 'Implementation-Version': version,
                 'Main-Class': 'ch.newsriver.beamer.BeamerMain'
     }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+    zip64 true
     baseName = project.name
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar

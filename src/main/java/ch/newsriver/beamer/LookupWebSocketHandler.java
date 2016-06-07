@@ -43,10 +43,10 @@ public  class LookupWebSocketHandler {
                 session.getBasicRemote().sendText("Extraction started...");
                 ManualURL manualURL = new ManualURL();
                 manualURL.setSessionId(session.getId());
-                manualURL.setUlr(url);
+                manualURL.setUrl(url);
                 manualURL.setReferralURL(url);
                 String json = mapper.writeValueAsString(manualURL);
-                BeamerMain.beamer.producer.send(new ProducerRecord<String, String>("raw-urls-priority", manualURL.getUlr(), json));
+                BeamerMain.beamer.producer.send(new ProducerRecord<String, String>("raw-urls-priority", manualURL.getUrl(), json));
             } catch (IOException e) {
                 session.getBasicRemote().sendText("Invalid request");
             }
