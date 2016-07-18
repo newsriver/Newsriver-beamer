@@ -1,5 +1,6 @@
 package ch.newsriver.beamer.servlet;
 
+import ch.newsriver.beamer.servlet.responses.ResponseRiver;
 import ch.newsriver.beamer.servlet.responses.ResponseToken;
 import ch.newsriver.beamer.servlet.responses.ResponseUser;
 import ch.newsriver.dao.JDBCPoolUtil;
@@ -9,10 +10,12 @@ import ch.newsriver.data.content.ArticleRequest;
 import ch.newsriver.data.content.HighlightedArticle;
 import ch.newsriver.data.user.User;
 import ch.newsriver.data.user.UserFactory;
+import ch.newsriver.data.user.river.NewsRiver;
 import ch.newsriver.data.user.token.TokenBase;
 import ch.newsriver.data.user.token.TokenFactory;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microtripit.mandrillapp.lutung.MandrillApi;
 import com.microtripit.mandrillapp.lutung.model.MandrillApiError;
 import com.microtripit.mandrillapp.lutung.view.MandrillMessage;
@@ -38,6 +41,7 @@ import java.util.List;
 @Path("/v1")
 public class RestAPIHandler {
     private static final Logger log = LogManager.getLogger(RestAPIHandler.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
 
 
     @GET
@@ -90,6 +94,62 @@ public class RestAPIHandler {
             searchRequest.setLimit(limit);
             searchRequest.setQuery(searchPhrase);
             return  ArticleFactory.getInstance().searchArticles(searchRequest);
+    }
+
+
+
+    @POST
+    @Path("/newsriver")
+    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public ResponseRiver addRiver(@Context HttpServletResponse servlerResponse, @QueryParam("token") String tokenStr, NewsRiver river) throws JsonProcessingException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+
+        ResponseRiver response = new ResponseRiver();
+
+        TokenFactory tokenFactory = new TokenFactory();
+        TokenBase token = tokenFactory.verifyToken(tokenStr);
+        if(token==null){
+            response.setError("Invalid token");
+            return response;
+        }
+
+        String sql = "INSERT INTO riverSetting (value,userId) VALUES (?,?)";
+        try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);) {
+
+            stmt.setString(1,mapper.writeValueAsString(river));
+            stmt.setLong(2,token.getUserId());
+            stmt.executeUpdate();
+
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    response.setRiverId(generatedKeys.getLong(1));
+                    response.setStatus(true);
+                }
+            }
+
+
+        }catch (SQLException e){
+            log.fatal("Unable to crete river",e);
+        }
+
+        return response;
+    }
+
+    @OPTIONS
+    @Path("/newsriver")
+    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public String options(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+
+        return "ok";
     }
 
 
