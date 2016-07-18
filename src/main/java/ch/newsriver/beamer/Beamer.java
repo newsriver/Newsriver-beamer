@@ -1,6 +1,7 @@
 package ch.newsriver.beamer;
 
 
+import ch.newsriver.dao.JDBCPoolUtil;
 import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.content.ArticleRequest;
@@ -20,8 +21,14 @@ import javax.websocket.Session;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.sql.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -34,6 +41,11 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     private static int MAX_EXECUTUION_DURATION = 120;
     private int batchSize;
 
+    //TODO: later replace this with a proper filter.
+    final static String argusDomains = "http://www.blick.ch/,http://www.tagesanzeiger.ch/,http://www.letemps.ch/,http://www.aargauerzeitung.ch/,http://www.suedostschweiz.ch/,http://www.nzz.ch/,http://www.srf.ch/,http://www.luzernerzeitung.ch/,http://www.20min.ch/,http://www.watson.ch/,http://www.sonntagszeitung.ch/,http://www.tagblatt.ch/,https://www.swissquote.ch/,http://www.rsi.ch/,http://www.rts.ch/,http://www.swissinfo.ch/,http://www.arcinfo.ch/,http://www.fuw.ch/,http://www.bilanz.ch/,http://www.finanzen.ch/,https://www.cash.ch/,http://www.handelszeitung.ch/,http://www.inside-it.ch/,http://www.annabelle.ch/,http://www.femina.ch/,http://www.computerworld.ch/,https://www.admin.ch/,https://www.migrosmagazin.ch/,http://www.aufeminin.com/,http://www.netzwoche.ch/,http://www.schweizer-illustrierte.ch/,http://www.boleromagazin.ch/";
+
+
+    private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
     private static final ObjectMapper mapper = new ObjectMapper();
     Consumer<String, String> consumer;
@@ -100,6 +112,51 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                     if (record.topic().equals("raw-article")) {
                         try {
                             Article article = mapper.readValue(record.value(), Article.class);
+
+                            //TODO: this is a temporary solution to identify Argus tests articles and store them in the db.
+                            try{
+
+                                URI articleURI = new URI(article.getUrl());
+                                String domain = null;
+                                if(article.getWebsite()!=null){
+                                    domain = article.getWebsite().getDomainName();
+                                }
+
+                                if(argusDomains.contains(articleURI.getHost()) || (domain!=null && argusDomains.contains(domain)) ){
+
+                                    String sql = "INSERT IGNORE INTO Newsriver.river (riverId,articleId,insertDate,discoverDate,publicationDate,host,url,title,text,json) VALUES (1,?,NOW(),?,?,?,?,?,?,?)";
+
+                                    try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql);) {
+
+
+
+
+                                        stmt.setString(1,article.getId());
+                                        stmt.setString(2,article.getDiscoverDate());
+                                        if(article.getPublishDate()!=null) {
+                                            stmt.setString(3, article.getPublishDate());
+                                        }else {
+                                            stmt.setNull(3, Types.VARCHAR);
+                                        }
+                                        stmt.setString(4,articleURI.getHost());
+                                        stmt.setString(5,article.getUrl());
+                                        stmt.setString(6,article.getTitle());
+                                        stmt.setString(7,article.getText());
+                                        stmt.setString(8,record.value());
+
+                                        stmt.executeUpdate();
+
+
+                                    } catch (SQLException e) {
+                                        logger.error("Unable to insert article to river table",e);
+                                    }
+
+                                }
+                            }catch (URISyntaxException e){
+                                logger.error("Invalid article URL",e);
+                            }
+
+
                             for (Session session : activeSessionsStreem.keySet()) {
                                 ArticleRequest request = activeSessionsStreem.get(session);
                                 if (request == null) {

@@ -1,6 +1,7 @@
 package ch.newsriver.beamer;
 
 import ch.newsriver.executable.poolExecution.MainWithPoolExecutorOptions;
+import com.google.common.collect.ImmutableMap;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -12,6 +13,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import javax.servlet.ServletException;
 import javax.websocket.DeploymentException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.SortedMap;
 
 
@@ -24,7 +26,7 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
 
     public static Beamer beamer;
     private Server server;
-    private static final int DEFAUTL_PORT = 8080;
+    private static final int DEFAUTL_PORT = 9090;
 
 
     public static void main(String[] args){
@@ -82,13 +84,11 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
         }
 
 
+
         ResourceConfig config = new ResourceConfig();
         config.packages("ch.newsriver.beamer.servlet");
         ServletHolder servlet = new ServletHolder(new ServletContainer(config));
-
         context.addServlet(servlet,"/*");
-
-
 
 
         try

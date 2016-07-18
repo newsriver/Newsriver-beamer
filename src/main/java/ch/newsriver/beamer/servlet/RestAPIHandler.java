@@ -1,32 +1,49 @@
 package ch.newsriver.beamer.servlet;
 
+import ch.newsriver.beamer.servlet.responses.ResponseToken;
+import ch.newsriver.beamer.servlet.responses.ResponseUser;
+import ch.newsriver.dao.JDBCPoolUtil;
+import ch.newsriver.data.content.Article;
+import ch.newsriver.data.content.ArticleFactory;
+import ch.newsriver.data.content.ArticleRequest;
+import ch.newsriver.data.content.HighlightedArticle;
+import ch.newsriver.data.user.User;
+import ch.newsriver.data.user.UserFactory;
+import ch.newsriver.data.user.token.TokenBase;
+import ch.newsriver.data.user.token.TokenFactory;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.microtripit.mandrillapp.lutung.MandrillApi;
 import com.microtripit.mandrillapp.lutung.model.MandrillApiError;
 import com.microtripit.mandrillapp.lutung.view.MandrillMessage;
 import com.microtripit.mandrillapp.lutung.view.MandrillMessageStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import javax.websocket.server.ServerEndpoint;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by eliapalme on 06/05/16.
  */
 
 
-@Path("/v1/access-request")
+@Path("/v1")
 public class RestAPIHandler {
+    private static final Logger log = LogManager.getLogger(RestAPIHandler.class);
+
 
     @GET
-    @Path("invite")
+    @Path("/access-request/invite")
     @Produces(MediaType.TEXT_PLAIN)
-    public Response helloWorld(@QueryParam("email") String email) {
+    public Response email(@QueryParam("email") String email) {
 
         String response="Error";
         MandrillApi mandrillApi = new MandrillApi("p-jQPeTF5GI461p6dwWcpA");
@@ -59,6 +76,92 @@ public class RestAPIHandler {
                 .header("Access-Control-Allow-Methods", "GET")
                 .allow("OPTIONS").build();
 
+    }
+
+
+    @GET
+    @Path("/search/news")
+    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    @JsonView(Article.ArticleViews.APIView.class)
+    public List<HighlightedArticle> search(@QueryParam("searchPhrase") String searchPhrase, @DefaultValue("100") @QueryParam("limit") int limit) throws JsonProcessingException {
+
+
+        ArticleRequest searchRequest =  new ArticleRequest();
+            searchRequest.setLimit(limit);
+            searchRequest.setQuery(searchPhrase);
+            return  ArticleFactory.getInstance().searchArticles(searchRequest);
+    }
+
+
+
+
+    @GET
+    @Path("/user/sign-up")
+    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    public ResponseToken signup(@Context HttpServletResponse servlerResponse, @QueryParam("email") String email, @QueryParam("password") String password, @QueryParam("name") String name) {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        ResponseToken response = new ResponseToken();
+
+        String sql = "INSERT INTO user (name,email,password) VALUES (?,?,SHA2(?,512))";
+        long userId;
+        try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);) {
+
+            stmt.setString(1,name);
+            stmt.setString(2,email);
+            stmt.setString(3,password);
+            stmt.executeUpdate();
+
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    userId = generatedKeys.getLong(1);
+                    TokenFactory tokenFactory = new TokenFactory();
+                    response.setToken(tokenFactory.generateTokenAPI(userId));
+                    response.setStatus(true);
+                }
+            }
+
+
+        }catch (SQLException e){
+            log.fatal("Unable to crete user",e);
+        }
+
+       return response;
+    }
+
+
+    @GET
+    @Path("/user/verify")
+    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    public ResponseUser verify(@Context HttpServletResponse servlerResponse, @QueryParam("token") String tokenStr) {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        ResponseUser response = new ResponseUser();
+
+
+        TokenFactory tokenFactory = new TokenFactory();
+        TokenBase token = tokenFactory.verifyToken(tokenStr);
+
+        if(token==null){
+            response.setError("Invalid token");
+            return response;
+        }
+
+        UserFactory userFactory = new UserFactory();
+        User user = userFactory.getUser(token.getUserId());
+
+        if(user==null){
+            response.setError("Unable to fetch user");
+            return response;
+        }
+
+        response.setUser(user);
+        response.setStatus(true);
+        return response;
     }
 
 }

@@ -4,6 +4,7 @@ package ch.newsriver.beamer;
 import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.content.ArticleRequest;
+import ch.newsriver.data.content.HighlightedArticle;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
@@ -43,7 +44,7 @@ public  class StreemWebSocketHandler {
                 ArticleRequest searchRequest =  mapper.readValue(txt,ArticleRequest.class);
                 BeamerMain.beamer.activeSessionsStreem.put(session,searchRequest);
                 ObjectWriter w = mapper.writerWithView(Article.ArticleViews.PublicView.class);
-                List<Article> articles = ArticleFactory.getInstance().searchArticles(searchRequest);
+                List<HighlightedArticle> articles = ArticleFactory.getInstance().searchArticles(searchRequest);
                 for(Article article : articles){
                     session.getBasicRemote().sendText(w.writeValueAsString(article));
                 }
