@@ -12,6 +12,7 @@ mainClassName = 'ch.newsriver.beamer.BeamerMain'
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
@@ -36,11 +37,8 @@ dependencies {
     compile 'org.glassfish.jersey.containers:jersey-container-servlet:2.22.2'
     compile 'org.glassfish.jersey.core:jersey-server:2.22.2'
     compile 'org.glassfish.jersey.media:jersey-media-json-jackson:2.22.2'
-
-
-
+    compile 'io.intercom:intercom-java:2.0.0'
     compile 'com.mandrillapp.wrapper.lutung:lutung:0.0.7'
-
     compile 'com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:2.7.2'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.7.2'
     compile 'com.fasterxml.jackson.core:jackson-core:2.7.2'
