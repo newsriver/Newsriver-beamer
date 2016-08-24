@@ -1,5 +1,5 @@
 
-#Required plugins: CloudBees Docker Pipeline Plugin
+# Required plugins: CloudBees Docker Pipeline Plugin
 
 
 node {
