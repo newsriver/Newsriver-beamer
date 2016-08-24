@@ -13,6 +13,7 @@ import ch.newsriver.data.user.UserFactory;
 import ch.newsriver.data.user.river.NewsRiver;
 import ch.newsriver.data.user.token.TokenBase;
 import ch.newsriver.data.user.token.TokenFactory;
+import ch.newsriver.data.website.WebSite;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,12 +50,12 @@ public class RestAPIHandler {
     @Produces(MediaType.TEXT_PLAIN)
     public Response email(@QueryParam("email") String email) {
 
-        String response="Error";
+        String response = "Error";
         MandrillApi mandrillApi = new MandrillApi("p-jQPeTF5GI461p6dwWcpA");
 
         MandrillMessage message = new MandrillMessage();
         message.setSubject("Newsriver Request");
-        message.setHtml("<h1>Access request</h1><br />from:"+email);
+        message.setHtml("<h1>Access request</h1><br />from:" + email);
         message.setAutoText(true);
         message.setFromEmail("support@newsriver.io");
         message.setFromName("Newsriver Support");
@@ -69,12 +70,12 @@ public class RestAPIHandler {
         message.setPreserveRecipients(true);
         try {
             MandrillMessageStatus[] messageStatusReports = mandrillApi.messages().send(message, false);
-        }catch (IOException e){
+        } catch (IOException e) {
 
-        }catch (MandrillApiError e){
+        } catch (MandrillApiError e) {
 
         }
-        response="Request sent!";
+        response = "Request sent!";
         return Response.ok().entity(response)
                 .header("Access-Control-Allow-Origin", "*")
                 .header("Access-Control-Allow-Methods", "GET")
@@ -85,22 +86,21 @@ public class RestAPIHandler {
 
     @GET
     @Path("/search/news")
-    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
-    @JsonView(Article.ArticleViews.APIView.class)
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @JsonView(APIJSONView.class)
     public List<HighlightedArticle> search(@QueryParam("searchPhrase") String searchPhrase, @DefaultValue("100") @QueryParam("limit") int limit) throws JsonProcessingException {
 
 
-        ArticleRequest searchRequest =  new ArticleRequest();
-            searchRequest.setLimit(limit);
-            searchRequest.setQuery(searchPhrase);
-            return  ArticleFactory.getInstance().searchArticles(searchRequest);
+        ArticleRequest searchRequest = new ArticleRequest();
+        searchRequest.setLimit(limit);
+        searchRequest.setQuery(searchPhrase);
+        return ArticleFactory.getInstance().searchArticles(searchRequest);
     }
-
 
 
     @POST
     @Path("/newsriver")
-    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     @Consumes(MediaType.APPLICATION_JSON)
     public ResponseRiver addRiver(@Context HttpServletResponse servlerResponse, @QueryParam("token") String tokenStr, NewsRiver river) throws JsonProcessingException {
 
@@ -112,7 +112,7 @@ public class RestAPIHandler {
 
         TokenFactory tokenFactory = new TokenFactory();
         TokenBase token = tokenFactory.verifyToken(tokenStr);
-        if(token==null){
+        if (token == null) {
             response.setError("Invalid token");
             return response;
         }
@@ -120,8 +120,8 @@ public class RestAPIHandler {
         String sql = "INSERT INTO riverSetting (value,userId) VALUES (?,?)";
         try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);) {
 
-            stmt.setString(1,mapper.writeValueAsString(river));
-            stmt.setLong(2,token.getUserId());
+            stmt.setString(1, mapper.writeValueAsString(river));
+            stmt.setLong(2, token.getUserId());
             stmt.executeUpdate();
 
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
@@ -132,8 +132,8 @@ public class RestAPIHandler {
             }
 
 
-        }catch (SQLException e){
-            log.fatal("Unable to crete river",e);
+        } catch (SQLException e) {
+            log.fatal("Unable to crete river", e);
         }
 
         return response;
@@ -141,7 +141,7 @@ public class RestAPIHandler {
 
     @OPTIONS
     @Path("/newsriver")
-    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     @Consumes(MediaType.APPLICATION_JSON)
     public String options(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
 
@@ -153,11 +153,9 @@ public class RestAPIHandler {
     }
 
 
-
-
     @GET
     @Path("/user/sign-up")
-    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     public ResponseToken signup(@Context HttpServletResponse servlerResponse, @QueryParam("email") String email, @QueryParam("password") String password, @QueryParam("name") String name) {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
@@ -169,9 +167,9 @@ public class RestAPIHandler {
         long userId;
         try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);) {
 
-            stmt.setString(1,name);
-            stmt.setString(2,email);
-            stmt.setString(3,password);
+            stmt.setString(1, name);
+            stmt.setString(2, email);
+            stmt.setString(3, password);
             stmt.executeUpdate();
 
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
@@ -184,17 +182,17 @@ public class RestAPIHandler {
             }
 
 
-        }catch (SQLException e){
-            log.fatal("Unable to crete user",e);
+        } catch (SQLException e) {
+            log.fatal("Unable to crete user", e);
         }
 
-       return response;
+        return response;
     }
 
 
     @GET
     @Path("/user/verify")
-    @Produces(MediaType.APPLICATION_JSON+ ";charset=utf-8")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     public ResponseUser verify(@Context HttpServletResponse servlerResponse, @QueryParam("token") String tokenStr) {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
@@ -206,7 +204,7 @@ public class RestAPIHandler {
         TokenFactory tokenFactory = new TokenFactory();
         TokenBase token = tokenFactory.verifyToken(tokenStr);
 
-        if(token==null){
+        if (token == null) {
             response.setError("Invalid token");
             return response;
         }
@@ -214,7 +212,7 @@ public class RestAPIHandler {
         UserFactory userFactory = new UserFactory();
         User user = userFactory.getUser(token.getUserId());
 
-        if(user==null){
+        if (user == null) {
             response.setError("Unable to fetch user");
             return response;
         }
@@ -222,6 +220,10 @@ public class RestAPIHandler {
         response.setUser(user);
         response.setStatus(true);
         return response;
+    }
+
+    //This interface is used to combine all required JSONViews
+    private interface APIJSONView extends Article.JSONViews.API, WebSite.JSONViews.API {
     }
 
 }

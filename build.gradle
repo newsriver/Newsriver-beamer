@@ -21,13 +21,12 @@ dependencies {
 
 processResources {
 
-    filesMatching('**/version.properties') {expand projectVersion: project.version}
+    filesMatching('**/version.properties') { expand projectVersion: project.version }
 
 }
 
 dependencies {
     compile project(':Newsriver-lib')
-    compile 'org.elasticsearch:elasticsearch:2.3.1'
     compile 'org.eclipse.jetty:jetty-server:9.3.8.v20160314'
     compile 'org.eclipse.jetty:jetty-servlet:9.3.8.v20160314'
     compile 'org.eclipse.jetty.websocket:javax-websocket-server-impl:9.3.8.v20160314'
@@ -54,7 +53,7 @@ task fatJar(type: Jar) {
                 'Implementation-Version': version,
                 'Main-Class': 'ch.newsriver.beamer.BeamerMain'
     }
-    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     zip64 true
     baseName = project.name
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
@@ -76,10 +75,10 @@ docker {
 
 }
 
-task buildimage(type: Docker, dependsOn:[clean,fatJar]) {
+task buildimage(type: Docker, dependsOn: [clean, fatJar]) {
     push = true
     tagVersion = 'latest'
-    registry= 'docker-registry.newsriver.io:5000'
+    registry = 'docker-registry.newsriver.io:5000'
     applicationName = 'newsriver-beamer'
     dockerfile = project.file('Dockerfile')
 
