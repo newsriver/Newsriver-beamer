@@ -8,7 +8,9 @@ node {
   stage 'Checkout Library'
   checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
   stage 'Checkout Beamer'
-  checkout scm : [$class: 'GitSCM',extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-beamer']]]
+  dir('Newsriver-beamer'){
+    checkout scm
+  }
   stage 'Write gradle project setting file'
   writeFile file: 'settings.gradle', text: '''include \'Newsriver-lib\'\ninclude \'Newsriver-beamer\''''
 
