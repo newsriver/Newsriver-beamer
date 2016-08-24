@@ -1,5 +1,6 @@
 node {
 
+
   if(env.BRANCH_NAME==null){
     env.BRANCH_NAME = "master"
   }
