@@ -1,10 +1,8 @@
 node {
 
-  println "Branch:"+env.BRANCH_NAME
   if(env.BRANCH_NAME==null){
     env.BRANCH_NAME = "master"
   }
-  println "Branch:"+env.BRANCH_NAME
 
   stage 'Checkout Library'
   checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
@@ -13,9 +11,13 @@ node {
   stage 'Write gradle project setting file'
   writeFile file: 'settings.gradle', text: '''include \'Newsriver-lib\'\ninclude \'Newsriver-beamer\''''
 
+  stage 'compile'
+  sh 'gradle compile -b Newsriver-beamer/build.gradle'
 
+  stage 'test'
+  sh 'gradle compile -b Newsriver-beamer/build.gradle'
 
-  if(env.GIT_BRANCH=="master"){
+  if(env.BRANCH_NAME=="master"){
     stage 'Build fatjat'
     sh 'gradle fatJar -b Newsriver-beamer/build.gradle'
     stage 'Build Docker image'
