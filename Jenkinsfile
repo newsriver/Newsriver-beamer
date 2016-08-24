@@ -18,12 +18,10 @@ node {
   sh 'gradle test -b Newsriver-beamer/build.gradle'
 
   if(env.BRANCH_NAME=="master"){
-
-
-
-
+    deployDockerImage()
   }
 }
+
 
 def deployDockerImage(){
 
