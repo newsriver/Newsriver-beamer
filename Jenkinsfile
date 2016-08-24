@@ -12,10 +12,10 @@ node {
   writeFile file: 'settings.gradle', text: '''include \'Newsriver-lib\'\ninclude \'Newsriver-beamer\''''
 
   stage 'compile'
-  sh 'gradle compile -b Newsriver-beamer/build.gradle'
+  sh 'gradle compileJava -b Newsriver-beamer/build.gradle'
 
   stage 'test'
-  sh 'gradle compile -b Newsriver-beamer/build.gradle'
+  sh 'gradle test -b Newsriver-beamer/build.gradle'
 
   if(env.BRANCH_NAME=="master"){
     stage 'Build fatjat'
