@@ -18,19 +18,41 @@ node {
   sh 'gradle test -b Newsriver-beamer/build.gradle'
 
   if(env.BRANCH_NAME=="master"){
-    stage 'Build fatjat'
-    sh 'gradle fatJar -b Newsriver-beamer/build.gradle'
-    stage 'Build Docker image'
-    dir('Newsriver-beamer/docker'){
-      deleteDir()
+
+
+
+
+  }
+}
+
+def deployDockerImage(){
+
+  stage 'Docker deploy'
+  initDocker()
+
+  sh 'gradle clean'
+  sh 'gradle fatJar -b Newsriver-beamer/build.gradle'
+
+  dir('Newsriver-beamer/docker'){
+    deleteDir()
+  }
+
+  sh 'mkdir Newsriver-beamer/docker'
+
+  dir('Newsriver-beamer/docker'){
+    sh 'cp ../build/libs/Newsriver-beamer-*.jar .'
+    sh 'cp ../Dockerfile .'
+    docker.withRegistry('https://docker-registry.newsriver.io:5000/') {
+        docker.build('newsriver-beamer:'+env.BUILD_TAG).push('latest')
     }
-    sh 'mkdir Newsriver-beamer/docker'
-    dir('Newsriver-beamer/docker'){
-      sh 'cp ../build/libs/Newsriver-beamer-*.jar .'
-      sh 'cp ../Dockerfile .'
-      docker.withRegistry('https://docker-registry.newsriver.io:5000/') {
-          docker.build('newsriver-beamer').push('latest')
-      }
-    }
+  }
+
+}
+
+
+def initDocker(){
+  def status = sh(script: 'service docker status', returnStatus: true)
+  if(status!=0){
+    sh 'service docker start'
   }
 }
