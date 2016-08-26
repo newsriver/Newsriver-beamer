@@ -31,6 +31,7 @@ def restartDockerContainer(){
       url: 'http://46.4.71.105:8080/',
       forceUpdate: true,
       appid: '/newsriver/newsriver-beamer'
+      docker: 'docker-registry.newsriver.io:5000/newsriver-beamer:'+env.BUILD_TAG
       )
 }
 
