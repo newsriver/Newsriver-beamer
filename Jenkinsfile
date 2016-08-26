@@ -19,12 +19,21 @@ node {
   sh 'gradle test'
 
   if(env.BRANCH_NAME=="master"){
-    deployDockerImage()
+    uploadDockerImage()
+    restartDockerContainer()
   }
 }
 
 
-def deployDockerImage(){
+def restartDockerContainer(){
+  marathon(
+      url: 'http://46.4.71.105:8080/',
+      forceUpdate: false,
+      appid: '/newsriver/newsriver-beamer'
+      )
+}
+
+def uploadDockerImage(){
 
   stage 'Docker deploy'
   initDocker()
@@ -39,10 +48,6 @@ def deployDockerImage(){
   sh 'mkdir docker'
 
   dir('docker'){
-    sh 'ls'
-    sh 'ls ..'
-    sh 'ls ../build'
-    sh 'ls ../build/libs'
     sh 'cp ../build/libs/Newsriver-beamer-*.jar .'
     sh 'cp ../Dockerfile .'
     docker.withRegistry('https://docker-registry.newsriver.io:5000/') {
