@@ -54,9 +54,7 @@ def deployDockerImage(){
     sh 'cp ../Dockerfile .'
     docker.withRegistry('https://docker-registry.newsriver.io:5000/') {
         stage 'build docker image'
-        def image = docker.build('newsriver-beamer:'+env.BUILD_NUMBER)
-        sh 'docker tag ${image.imageName()} docker-registry.newsriver.io:5000/newsriver-beamer:latest'
-        sh 'docker tag ${image.imageName()} docker-registry.newsriver.io:5000/newsriver-beamer:${GIT_COMMIT}'
+        def image = docker.build("newsriver-beamer:${env.BUILD_NUMBER}")
         stage 'upload docker image'
         image.push('latest')
     }
