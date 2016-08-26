@@ -57,6 +57,10 @@ def deployDockerImage(){
         def image = docker.build("newsriver-beamer:latest")
         stage 'upload docker image'
         image.push(env.BUILD_NUMBER)
+        image.push('latest')
+        if(env.GIT_COMMIT!=null){
+          image.push(env.GIT_COMMIT)
+        }
     }
   }
 
