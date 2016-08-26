@@ -25,12 +25,12 @@ node {
 
 
     deployDockerImage(projectName,dockerRegistry)
-    restartDockerContainer(marathonAppId,projectName,dockerRegistry)
+    restartDockerContainer(marathonAppId,projectName,dockerRegistry,marathonURL)
 
 }
 
 
-def restartDockerContainer(marathonAppId,projectName,dockerRegistry){
+def restartDockerContainer(marathonAppId,projectName,dockerRegistry,marathonURL){
   stage 'deploy application'
   marathon(
       url: "$marathonURL",
