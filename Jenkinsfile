@@ -21,9 +21,10 @@ node {
     stage 'test'
     sh 'gradle test'
 
-
-    deployDockerImage(projectName, dockerRegistry)
-    restartDockerContainer(marathonAppId, projectName, dockerRegistry, marathonURL)
+    if (env.BRANCH_NAME == "master") {
+        deployDockerImage(projectName, dockerRegistry)
+        restartDockerContainer(marathonAppId, projectName, dockerRegistry, marathonURL)
+    }
 
 }
 
