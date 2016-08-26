@@ -29,7 +29,7 @@ def restartDockerContainer(){
   stage 'deploy application'
   marathon(
       url: 'http://46.4.71.105:8080/',
-      forceUpdate: false,
+      forceUpdate: true,
       appid: '/newsriver/newsriver-beamer'
       )
 }
