@@ -3,8 +3,8 @@
 
 def marathonAppId = '/newsriver/newsriver-beamer'
 def projectName = 'Newsriver-beamer'
-def docker-registry = 'docker-registry.newsriver.io:5000'
-def marathon-url = 'http://46.4.71.105:8080/'
+def dockerRegistry = 'dockerRegistry.newsriver.io:5000'
+def marathonURL = 'http://46.4.71.105:8080/'
 
 node {
 
@@ -31,10 +31,10 @@ node {
 def restartDockerContainer(){
   stage 'deploy application'
   marathon(
-      url: marathon-url,
+      url: marathonURL,
       forceUpdate: true,
       appid: marathonAppId,
-      docker: docker-registry + '/'+projectName+':'+env.BUILD_NUMBER
+      docker: dockerRegistry + '/'+projectName+':'+env.BUILD_NUMBER
       )
 }
 
@@ -53,7 +53,7 @@ def deployDockerImage(){
   dir('docker'){
     sh 'cp ../build/libs/'+projectName+'-*.jar .'
     sh 'cp ../Dockerfile .'
-    docker.withRegistry('https://'+docker-registry+'/') {
+    docker.withRegistry('https://'+dockerRegistry+'/') {
         stage 'build docker image'
         def image = docker.build(projectName+":latest")
         stage 'upload docker image'
