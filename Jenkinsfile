@@ -50,8 +50,8 @@ def deployDockerImage(){
 
 
 def initDocker(){
-  def status = sh(script: 'sudo service docker status', returnStatus: true)
+  def status = sh(script: 'docker ps', returnStatus: true)
   if(status!=0){
-    sh 'sudo service docker start'
+    sh 'service docker start'
   }
 }
