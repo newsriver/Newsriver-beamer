@@ -1,6 +1,5 @@
 #!groovy​
 
-
 def marathonAppId = '/newsriver/newsriver-beamer'
 def projectName = 'newsriver-beamer'
 def dockerRegistry = 'docker-registry.newsriver.io:5000'
@@ -8,12 +7,11 @@ def marathonURL = 'http://46.4.71.105:8080/'
 
 node {
 
-    sh 'gradle clean'
-
-    stage 'checkout lib'
-    checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
     stage 'checkout project'
     checkout scm
+    stage 'checkout lib'
+    checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
+
     stage 'set-up project'
     writeFile file: 'settings.gradle', text: '''rootProject.name = \'''' + projectName + '''\' \ninclude \'Newsriver-lib\''''
 
@@ -23,9 +21,10 @@ node {
     stage 'test'
     sh 'gradle test'
 
-
-    deployDockerImage(projectName, dockerRegistry)
-    restartDockerContainer(marathonAppId, projectName, dockerRegistry, marathonURL)
+    if (env.BRANCH_NAME == "master") {
+        deployDockerImage(projectName, dockerRegistry)
+        restartDockerContainer(marathonAppId, projectName, dockerRegistry, marathonURL)
+    }
 
 }
 
@@ -44,6 +43,7 @@ def deployDockerImage(projectName, dockerRegistry) {
 
     stage 'build'
     initDocker()
+    sh 'gradle clean'
     sh 'gradle fatJar'
 
     dir('docker') {
