@@ -10,7 +10,7 @@ node {
   stage 'Checkout Beamer'
   checkout scm
   stage 'Write gradle project setting file'
-  writeFile file: 'settings.gradle', text: '''rootProject.name = \'Newsriver-beamer\'  include \'Newsriver-lib\''''
+  writeFile file: 'settings.gradle', text: '''rootProject.name = \'Newsriver-beamer\' \ninclude \'Newsriver-lib\''''
 
   stage 'compile'
   sh 'gradle compileJava'
