@@ -1,5 +1,5 @@
-buildNumber = System.getenv("BUILD_NUMBER") ?: "dev"
-version '0.1.1' + '.' + buildNumber
+version '0.1.1' + '.' + (System.getenv("BUILD_NUMBER") ?: 'dev')
+
 
 apply plugin: 'java'
 apply plugin: 'application'
