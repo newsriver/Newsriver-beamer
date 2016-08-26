@@ -8,66 +8,64 @@ def marathonURL = 'http://46.4.71.105:8080/'
 
 node {
 
-  sh 'gradle clean'
+    sh 'gradle clean'
 
-  stage 'checkout lib'
-  checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
-  stage 'checkout project'
-  checkout scm
-  stage 'set-up project'
-  writeFile file: 'settings.gradle', text: '''rootProject.name = \''''+projectName+'''\' \ninclude \'Newsriver-lib\''''
+    stage 'checkout lib'
+    checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
+    stage 'checkout project'
+    checkout scm
+    stage 'set-up project'
+    writeFile file: 'settings.gradle', text: '''rootProject.name = \'''' + projectName + '''\' \ninclude \'Newsriver-lib\''''
 
-  stage 'compile'
-  sh 'gradle compileJava'
+    stage 'compile'
+    sh 'gradle compileJava'
 
-  stage 'test'
-  sh 'gradle test'
+    stage 'test'
+    sh 'gradle test'
 
 
-    deployDockerImage(projectName,dockerRegistry)
-    restartDockerContainer(marathonAppId,projectName,dockerRegistry,marathonURL)
+    deployDockerImage(projectName, dockerRegistry)
+    restartDockerContainer(marathonAppId, projectName, dockerRegistry, marathonURL)
 
 }
 
 
-def restartDockerContainer(marathonAppId,projectName,dockerRegistry,marathonURL){
-  stage 'deploy application'
-  marathon(
-      url: "$marathonURL",
-      forceUpdate: true,
-      appid: "$marathonAppId",
-      docker: "$dockerRegistry/$projectName:${env.BUILD_NUMBER}"
-      )
+def restartDockerContainer(marathonAppId, projectName, dockerRegistry, marathonURL) {
+    stage 'deploy application'
+    marathon(
+            url: "$marathonURL",
+            forceUpdate: true,
+            appid: "$marathonAppId",
+            docker: "$dockerRegistry/$projectName:${env.BUILD_NUMBER}"
+    )
 }
 
-def deployDockerImage(projectName,dockerRegistry){
+def deployDockerImage(projectName, dockerRegistry) {
 
-  stage 'build'
-  initDocker()
-  sh 'gradle fatJar'
+    stage 'build'
+    initDocker()
+    sh 'gradle fatJar'
 
-  dir('docker'){
-    deleteDir()
-  }
-  sh 'mkdir docker'
-
-  dir('docker'){
-    sh "cp ../build/libs/$projectName-*.jar ."
-    sh 'cp ../Dockerfile .'
-    docker.withRegistry("https://$dockerRegistry/") {
-        stage 'build docker image'
-        def image = docker.build("$projectName:latest")
-        stage 'upload docker image'
-        image.push(env.BUILD_NUMBER)
+    dir('docker') {
+        deleteDir()
     }
-  }
+    sh 'mkdir docker'
 
+    dir('docker') {
+        sh "cp ../build/libs/$projectName-*.jar ."
+        sh 'cp ../Dockerfile .'
+        docker.withRegistry("https://$dockerRegistry/") {
+            stage 'build docker image'
+            def image = docker.build("$projectName:latest")
+            stage 'upload docker image'
+            image.push(env.BUILD_NUMBER)
+        }
+    }
 }
 
-
-def initDocker(){
-  def status = sh(script: 'docker ps', returnStatus: true)
-  if(status!=0){
-    sh 'service docker start'
-  }
+def initDocker() {
+    def status = sh(script: 'docker ps', returnStatus: true)
+    if (status != 0) {
+        sh 'service docker start'
+    }
 }
