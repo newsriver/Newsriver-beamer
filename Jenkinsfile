@@ -39,6 +39,10 @@ def deployDockerImage(){
   sh 'mkdir docker'
 
   dir('docker'){
+    sh 'ls'
+    sh 'ls ..'
+    sh 'ls ../build'
+    sh 'ls ../build/libs'
     sh 'cp ../build/libs/Newsriver-beamer-*.jar .'
     sh 'cp ../Dockerfile .'
     docker.withRegistry('https://docker-registry.newsriver.io:5000/') {
