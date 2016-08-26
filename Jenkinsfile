@@ -7,7 +7,6 @@ def marathonURL = 'http://46.4.71.105:8080/'
 
 node {
 
-    sh 'gradle clean'
 
     stage 'checkout lib'
     checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
@@ -43,6 +42,7 @@ def deployDockerImage(projectName, dockerRegistry) {
 
     stage 'build'
     initDocker()
+    sh 'gradle clean'
     sh 'gradle fatJar'
 
     dir('docker') {
