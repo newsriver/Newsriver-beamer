@@ -1,12 +1,10 @@
 
-final PROJECT-NAME = "Newsriver-beamer"
-final MARATHON-APP-ID = '/newsriver/newsriver-beamer'
-final DOCKER-REGISTRY = "docker-registry.newsriver.io:5000"
-final MARATHON-URL = 'http://46.4.71.105:8080/'
-
-
 node {
 
+  def PROJECT-NAME = "Newsriver-beamer"
+  def MARATHON-APP-ID = '/newsriver/newsriver-beamer'
+  def DOCKER-REGISTRY = "docker-registry.newsriver.io:5000"
+  def MARATHON-URL = 'http://46.4.71.105:8080/'
 
   stage 'checkout lib'
   checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
