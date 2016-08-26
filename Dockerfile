@@ -1,6 +1,4 @@
-FROM alpine:3.3
-RUN apk --update add openjdk8-jre
-VOLUME ["/root/DISCO_Dictionaries/"]
+FROM 8-jre-alpine
 COPY Newsriver-beamer-*.jar /home/Newsriver-beamer.jar
 WORKDIR /home
 EXPOSE 31000-32000
