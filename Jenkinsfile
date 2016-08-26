@@ -5,11 +5,11 @@ node {
     env.BRANCH_NAME = "master"
   }
 
-  stage 'Checkout Library'
+  stage 'checkout lib'
   checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
-  stage 'Checkout Beamer'
+  stage 'checkout project'
   checkout scm
-  stage 'Write gradle project setting file'
+  stage 'set-up project'
   writeFile file: 'settings.gradle', text: '''rootProject.name = \'Newsriver-beamer\' \ninclude \'Newsriver-lib\''''
 
   stage 'compile'
@@ -19,13 +19,14 @@ node {
   sh 'gradle test'
 
   if(env.BRANCH_NAME=="master"){
-    uploadDockerImage()
+    deployDockerImage()
     restartDockerContainer()
   }
 }
 
 
 def restartDockerContainer(){
+  stage 'deploy application (container)'
   marathon(
       url: 'http://46.4.71.105:8080/',
       forceUpdate: false,
@@ -33,9 +34,9 @@ def restartDockerContainer(){
       )
 }
 
-def uploadDockerImage(){
+def deployDockerImage(){
 
-  stage 'Docker deploy'
+  stage 'build'
   initDocker()
 
   sh 'gradle clean'
@@ -51,7 +52,10 @@ def uploadDockerImage(){
     sh 'cp ../build/libs/Newsriver-beamer-*.jar .'
     sh 'cp ../Dockerfile .'
     docker.withRegistry('https://docker-registry.newsriver.io:5000/') {
-        docker.build('newsriver-beamer:'+env.BUILD_TAG).push('latest')
+        stage 'build docker image'
+        def image = docker.build('newsriver-beamer:'+env.BUILD_TAG)
+        stage 'upload docker image'
+        image.push('latest')
     }
   }
 
