@@ -1,6 +1,5 @@
 #!groovy​
 
-
 def marathonAppId = '/newsriver/newsriver-beamer'
 def projectName = 'newsriver-beamer'
 def dockerRegistry = 'docker-registry.newsriver.io:5000'
