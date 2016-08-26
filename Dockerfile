@@ -1,5 +1,5 @@
 FROM openjdk:8-jre-alpine
-COPY Newsriver-beamer-*.jar /home/Newsriver-beamer.jar
+COPY newsriver-beamer-*.jar /home/newsriver-beamer.jar
 WORKDIR /home
 EXPOSE 31000-32000
 ENV PORT 31113
