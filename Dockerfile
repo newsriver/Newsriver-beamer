@@ -1,4 +1,4 @@
-FROM 8-jre-alpine
+FROM openjdk:8-jre-alpine
 COPY Newsriver-beamer-*.jar /home/Newsriver-beamer.jar
 WORKDIR /home
 EXPOSE 31000-32000
