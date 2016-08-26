@@ -1,8 +1,11 @@
-version '0.1.1'
+ext.buildNumber = System.getenv("BUILD_NUMBER") ?: "dev"
+version '0.1.1.$buildNumber'
 
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'docker'
+
+
 
 
 sourceCompatibility = 1.8
