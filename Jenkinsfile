@@ -31,7 +31,7 @@ def restartDockerContainer(){
       url: 'http://46.4.71.105:8080/',
       forceUpdate: true,
       appid: '/newsriver/newsriver-beamer',
-      docker: 'docker-registry.newsriver.io:5000/newsriver-beamer:'+env.BUILD_TAG
+      docker: 'docker-registry.newsriver.io:5000/newsriver-beamer:'+env.BUILD_NUMBER
       )
 }
 
@@ -54,7 +54,9 @@ def deployDockerImage(){
     sh 'cp ../Dockerfile .'
     docker.withRegistry('https://docker-registry.newsriver.io:5000/') {
         stage 'build docker image'
-        def image = docker.build('newsriver-beamer:'+env.BUILD_TAG)
+        def image = docker.build('newsriver-beamer:'+env.BUILD_NUMBER)
+        sh 'docker tag ${image.imageName()} docker-registry.newsriver.io:5000/newsriver-beamer:latest'
+        sh 'docker tag ${image.imageName()} docker-registry.newsriver.io:5000/newsriver-beamer:${GIT_COMMIT}'
         stage 'upload docker image'
         image.push('latest')
     }
