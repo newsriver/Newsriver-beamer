@@ -1,17 +1,17 @@
-
+#!groovy​
 node {
 
-  def PROJECT-NAME = "Newsriver-beamer"
-  def MARATHON-APP-ID = '/newsriver/newsriver-beamer'
-  def DOCKER-REGISTRY = "docker-registry.newsriver.io:5000"
-  def MARATHON-URL = 'http://46.4.71.105:8080/'
+  def project-name = 'Newsriver-beamer'
+  def marathon-app-id = '/newsriver/newsriver-beamer'
+  def docker-registry = 'docker-registry.newsriver.io:5000'
+  def marathon-url = 'http://46.4.71.105:8080/'
 
   stage 'checkout lib'
   checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Newsriver-lib']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'newsriver-lib', url: 'git@github.com:newsriver/Newsriver-lib.git']]])
   stage 'checkout project'
   checkout scm
   stage 'set-up project'
-  writeFile file: 'settings.gradle', text: '''rootProject.name = \''''+PROJECT-NAME+'''\' \ninclude \'Newsriver-lib\''''
+  writeFile file: 'settings.gradle', text: '''rootProject.name = \''''+project-name+'''\' \ninclude \'Newsriver-lib\''''
 
   stage 'compile'
   sh 'gradle compileJava'
@@ -29,10 +29,10 @@ node {
 def restartDockerContainer(){
   stage 'deploy application'
   marathon(
-      url: MARATHON-URL,
+      url: marathon-url,
       forceUpdate: true,
-      appid: MARATHON-APP-ID,
-      docker: DOCKER-REGISTRY + '/'+PROJECT-NAME+':'+env.BUILD_NUMBER
+      appid: marathon-app-id,
+      docker: docker-registry + '/'+project-name+':'+env.BUILD_NUMBER
       )
 }
 
@@ -49,11 +49,11 @@ def deployDockerImage(){
   sh 'mkdir docker'
 
   dir('docker'){
-    sh 'cp ../build/libs/'+PROJECT-NAME+'-*.jar .'
+    sh 'cp ../build/libs/'+project-name+'-*.jar .'
     sh 'cp ../Dockerfile .'
-    docker.withRegistry('https://'+DOCKER-REGISTRY+'/') {
+    docker.withRegistry('https://'+docker-registry+'/') {
         stage 'build docker image'
-        def image = docker.build(PROJECT-NAME+":latest")
+        def image = docker.build(project-name+":latest")
         stage 'upload docker image'
         image.push(env.BUILD_NUMBER)
     }
