@@ -26,7 +26,7 @@ node {
 
 
 def restartDockerContainer(){
-  stage 'deploy application (container)'
+  stage 'deploy application'
   marathon(
       url: 'http://46.4.71.105:8080/',
       forceUpdate: false,
