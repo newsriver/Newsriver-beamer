@@ -204,6 +204,42 @@ public class RestAPIHandler {
 
 
     @GET
+    @Path("/user/sign-in")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    public Response signin(@Context HttpServletResponse servlerResponse, @QueryParam("email") String email, @QueryParam("password") String password) {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+
+        String sql = "SELECT id FROM user WHERE email like ? AND password like SHA2(?,512)";
+        long userId;
+        try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);) {
+
+            stmt.setString(1, email);
+            stmt.setString(2, password);
+
+            try (ResultSet user = stmt.executeQuery()) {
+                if (user.next()) {
+                    TokenFactory tokenFactory = new TokenFactory();
+                    String tokenStr = tokenFactory.generateTokenAPI(user.getLong("id"));
+
+                    return Response.ok(tokenStr, MediaType.APPLICATION_JSON_TYPE).build();
+                } else {
+                    return Response.status(401).build();
+                }
+            }
+
+
+        } catch (SQLException e) {
+            log.fatal("Unable to crete user", e);
+        }
+
+        return Response.serverError().build();
+    }
+
+
+    @GET
     @Path("/user/verify")
     @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     public Response verify(@Context HttpServletResponse servlerResponse, @HeaderParam("Authorization") String tokenStr) {
