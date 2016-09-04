@@ -22,10 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -76,9 +73,12 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
             }
         }
 
+        //Every beamer should process all messages, therefore we add a random string to the group id.
+        props.setProperty("group.id", props.getProperty("group.id") + "-" + UUID.randomUUID().toString());
+
         producer = new KafkaProducer(props);
         consumer = new KafkaConsumer(props);
-        consumer.subscribe(Arrays.asList("raw-article", "processing-status"));
+        consumer.subscribe(Arrays.asList("processed-article", "processing-status"));
 
 
     }
@@ -101,7 +101,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                 ConsumerRecords<String, String> records = consumer.poll(60000);
                 for (ConsumerRecord<String, String> record : records) {
 
-                    if (record.topic().equals("raw-article")) {
+                    if (record.topic().equals("processed-article")) {
                         try {
                             Article article = mapper.readValue(record.value(), Article.class);
 

@@ -1,7 +1,7 @@
 package ch.newsriver.beamer;
 
+import ch.newsriver.beamer.websocket.v2.WebSocketAPIHandler;
 import ch.newsriver.executable.poolExecution.MainWithPoolExecutorOptions;
-import com.google.common.collect.ImmutableMap;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -13,7 +13,6 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import javax.servlet.ServletException;
 import javax.websocket.DeploymentException;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.SortedMap;
 
 
@@ -24,38 +23,33 @@ import java.util.SortedMap;
 
 public class BeamerMain extends MainWithPoolExecutorOptions {
 
+    private static final int DEFAUTL_PORT = 9090;
     public static Beamer beamer;
     private Server server;
-    private static final int DEFAUTL_PORT = 9090;
 
 
-    public static void main(String[] args){
+    public BeamerMain(String[] args) {
+        super(args, false);
+    }
+
+    public static void main(String[] args) {
         new BeamerMain(args);
 
     }
 
+    static public HashMap<String, SortedMap<Long, Long>> getMetric() {
+        return metrics;
+    }
 
-
-    public int getDefaultPort(){
+    public int getDefaultPort() {
         return DEFAUTL_PORT;
-    }
-
-    public  BeamerMain(String[] args){
-        super(args, false);
-    }
-
-    static public HashMap<String, SortedMap<Long, Long>> getMetric(){
-        return  metrics;
     }
 
     @Override
     public void shutdown() {
-        try
-        {
+        try {
             server.stop();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -77,30 +71,27 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
             // Add echo endpoint to server container
             container.addEndpoint(StreemWebSocketHandler.class);
             container.addEndpoint(LookupWebSocketHandler.class);
-        }catch (ServletException e) {
+            container.addEndpoint(WebSocketAPIHandler.class);
+        } catch (ServletException e) {
 
-        }catch (DeploymentException e){
+        } catch (DeploymentException e) {
 
         }
-
 
 
         ResourceConfig config = new ResourceConfig();
         config.packages("ch.newsriver.beamer.servlet");
         ServletHolder servlet = new ServletHolder(new ServletContainer(config));
-        context.addServlet(servlet,"/*");
+        context.addServlet(servlet, "/*");
 
 
-        try
-        {
-            System.out.println("Threads pool size:" + this.getPoolSize() +"\tbatch size:"+this.getBatchSize()+"\tqueue size:"+this.getBatchSize());
-            beamer = new Beamer(this.getPoolSize(),this.getBatchSize(),this.getQueueSize());
+        try {
+            System.out.println("Threads pool size:" + this.getPoolSize() + "\tbatch size:" + this.getBatchSize() + "\tqueue size:" + this.getBatchSize());
+            beamer = new Beamer(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
             new Thread(beamer).start();
             server.start();
             server.join();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
