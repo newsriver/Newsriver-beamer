@@ -22,7 +22,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -151,6 +155,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                             for (Session session : activeSessionsStreem.keySet()) {
                                 ArticleRequest request = activeSessionsStreem.get(session);
                                 if (request == null) {
+                                    //TODO: consider closing session with no request after a certain timeout
                                     continue;
                                 }
 
