@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,8 +43,10 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     private static final ObjectMapper mapper = new ObjectMapper();
     private static int MAX_EXECUTUION_DURATION = 120;
+    private static int CONSUMPTION_DELAY = 60;
     public Map<Session, ArticleRequest> activeSessionsStreem;
     public Map<Session, String> activeSessionsLookup;
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     Consumer<String, String> consumer;
     Producer<String, String> producer;
     private boolean run = false;
@@ -109,6 +113,16 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                         try {
                             Article article = mapper.readValue(record.value(), Article.class);
 
+                            //TODO: implement delayd comsumption in Stream class and replace this class with a stream in the Main class of the Beamer
+                            //Delaying the consumption of the records. This is done to give time to Elasticsearch to index the new document
+                            //Since ES does not immediately index new documents we need to delay the search phase.
+                            ZonedDateTime discoverTime = ZonedDateTime.parse(article.getDiscoverDate(), formatter);
+                            Duration duration = Duration.between(discoverTime, ZonedDateTime.now());
+                            if (duration.getSeconds() < CONSUMPTION_DELAY) {
+                                Thread.sleep((CONSUMPTION_DELAY - duration.getSeconds()) * 1000);
+                            }
+
+
                             //TODO: this is a temporary solution to identify Argus tests articles and store them in the db.
                             /*
                             try {
@@ -160,7 +174,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                 }
 
                                 request.setId(article.getId());
-                                //TODO: replace this with a local Lucene index not sure using ES is a good idea
+                                //TODO: send article highlight and score
                                 if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
                                     CompletableFuture<String> taks = CompletableFuture.supplyAsync(() -> {
                                         try {
