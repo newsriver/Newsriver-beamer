@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -116,10 +117,14 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                             //TODO: implement delayd comsumption in Stream class and replace this class with a stream in the Main class of the Beamer
                             //Delaying the consumption of the records. This is done to give time to Elasticsearch to index the new document
                             //Since ES does not immediately index new documents we need to delay the search phase.
-                            ZonedDateTime discoverTime = ZonedDateTime.parse(article.getDiscoverDate(), formatter);
-                            Duration duration = Duration.between(discoverTime, ZonedDateTime.now());
-                            if (duration.getSeconds() < CONSUMPTION_DELAY) {
-                                Thread.sleep((CONSUMPTION_DELAY - duration.getSeconds()) * 1000);
+                            try {
+                                ZonedDateTime discoverTime = ZonedDateTime.parse(article.getDiscoverDate(), formatter);
+                                Duration duration = Duration.between(discoverTime, ZonedDateTime.now());
+                                if (duration.getSeconds() < CONSUMPTION_DELAY) {
+                                    Thread.sleep((CONSUMPTION_DELAY - duration.getSeconds()) * 1000);
+                                }
+                            } catch (DateTimeParseException ex) {
+                                logger.fatal("Discover date is unparsable:" + article.getDiscoverDate(), ex);
                             }
 
 
