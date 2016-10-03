@@ -41,9 +41,7 @@ public class WebSocketAPIHandler {
 
     @OnMessage
     public void onMessage(String txt, Session session) throws IOException {
-        session.getBasicRemote().sendText(txt.toUpperCase());
         try {
-
             ArticleRequest searchRequest = mapper.readValue(txt, ArticleRequest.class);
             BeamerMain.beamer.activeSessionsStreem.put(session, searchRequest);
             ObjectWriter w = mapper.writerWithView(StreemJSONView.class);
@@ -51,7 +49,6 @@ public class WebSocketAPIHandler {
             for (Article article : articles) {
                 session.getBasicRemote().sendText(w.writeValueAsString(article));
             }
-
         } catch (IOException e) {
             session.getBasicRemote().sendText("Invalid request");
         }
