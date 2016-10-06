@@ -173,7 +173,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
                             for (Session session : activeSessionsStreem.keySet()) {
                                 ArticleRequest request = activeSessionsStreem.get(session);
-                                if (request == null) {
+                                if (request == null || request.getQuery() == null) {
                                     //TODO: consider closing session with no request after a certain timeout
                                     continue;
                                 }

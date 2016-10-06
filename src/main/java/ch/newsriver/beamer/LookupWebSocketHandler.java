@@ -7,7 +7,11 @@ import ch.newsriver.data.website.WebSite;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-import javax.websocket.*;
+import javax.websocket.CloseReason;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 
@@ -28,7 +32,7 @@ public class LookupWebSocketHandler {
     @OnOpen
     public void onOpen(Session session) {
 
-        BeamerMain.beamer.activeSessionsLookup.put(session, null);
+        BeamerMain.beamer.activeSessionsLookup.put(session, "");
     }
 
     @OnMessage

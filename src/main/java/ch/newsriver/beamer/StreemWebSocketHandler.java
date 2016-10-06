@@ -9,7 +9,11 @@ import ch.newsriver.data.website.WebSite;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
-import javax.websocket.*;
+import javax.websocket.CloseReason;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.List;
@@ -20,6 +24,7 @@ import java.util.List;
 
 
 @ServerEndpoint("/streamWebSocket")
+@Deprecated
 public class StreemWebSocketHandler {
 
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -30,8 +35,8 @@ public class StreemWebSocketHandler {
 
     @OnOpen
     public void onOpen(Session session) {
-
-        BeamerMain.beamer.activeSessionsStreem.put(session, null);
+        ArticleRequest placeholder = new ArticleRequest();
+        BeamerMain.beamer.activeSessionsStreem.put(session, placeholder);
     }
 
     @OnMessage

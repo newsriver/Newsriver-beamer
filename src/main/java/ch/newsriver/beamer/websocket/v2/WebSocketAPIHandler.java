@@ -35,8 +35,12 @@ public class WebSocketAPIHandler {
 
     @OnOpen
     public void onOpen(Session session) {
-
-        BeamerMain.beamer.activeSessionsStreem.put(session, null);
+        try {
+            ArticleRequest placeholder = new ArticleRequest();
+            BeamerMain.beamer.activeSessionsStreem.put(session, placeholder);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @OnMessage
