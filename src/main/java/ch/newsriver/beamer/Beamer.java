@@ -26,11 +26,11 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Created by eliapalme on 11/03/16.
@@ -45,8 +45,8 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     private static final ObjectMapper mapper = new ObjectMapper();
     private static int MAX_EXECUTUION_DURATION = 120;
     private static int CONSUMPTION_DELAY = 60;
-    public Map<Session, ArticleRequest> activeSessionsStreem;
-    public Map<Session, String> activeSessionsLookup;
+    public ConcurrentMap<Session, ArticleRequest> activeSessionsStreem;
+    public ConcurrentMap<Session, String> activeSessionsLookup;
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     Consumer<String, String> consumer;
     Producer<String, String> producer;
@@ -59,8 +59,8 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
         super(poolSize, queueSize, Duration.ofSeconds(MAX_EXECUTUION_DURATION));
         this.batchSize = batchSize;
         run = true;
-        activeSessionsStreem = new HashMap<>();
-        activeSessionsLookup = new HashMap<>();
+        activeSessionsStreem = new ConcurrentHashMap<>();
+        activeSessionsLookup = new ConcurrentHashMap<>();
 
         Properties props = new Properties();
         InputStream inputStream = null;
@@ -121,7 +121,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                 ZonedDateTime discoverTime = ZonedDateTime.parse(article.getDiscoverDate(), formatter);
                                 Duration duration = Duration.between(discoverTime, ZonedDateTime.now());
                                 if (duration.getSeconds() < CONSUMPTION_DELAY) {
-                                    Thread.sleep((CONSUMPTION_DELAY - duration.getSeconds()) * 1000);
+                                    Thread.sleep(Math.min(CONSUMPTION_DELAY, CONSUMPTION_DELAY - duration.getSeconds()) * 1000);
                                 }
                             } catch (DateTimeParseException ex) {
                                 logger.fatal("Discover date is unparsable:" + article.getDiscoverDate(), ex);
@@ -214,11 +214,13 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                     }
                 }
             } catch (InterruptedException ex) {
-                logger.warn("Miner job interrupted", ex);
+                logger.warn("Beaming job interrupted", ex);
                 run = false;
                 return;
             } catch (BatchSizeException ex) {
                 logger.fatal("Requested a batch size bigger than pool capability.");
+            } catch (Exception ex) {
+                logger.fatal("Exception in main Beamer loop", ex);
             }
             continue;
         }
