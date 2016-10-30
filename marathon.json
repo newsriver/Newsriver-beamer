@@ -1,8 +1,8 @@
 {
-  "id": "/newsriver/newsriver-beamer",
+  "id": "/newsriver/newsriver-beamer-2",
   "cmd": null,
-  "cpus": 0.2,
-  "mem": 1024,
+  "cpus": 1,
+  "mem": 2048,
   "disk": 0,
   "instances": 1,
   "container": {
@@ -30,7 +30,12 @@
   ],
   "labels": {
     "HAPROXY_GROUP": "external",
-    "HAPROXY_0_VHOST": "api.newsriver.io",
+    "HAPROXY_0_VHOST": "api-2.newsriver.io",
     "HAPROXY_0_REDIRECT_TO_HTTPS": "true"
-  }
+  },
+  "args": [
+    "--threads=50",
+    "--batch=50",
+    "--queue=100"
+  ]
 }

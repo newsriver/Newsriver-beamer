@@ -27,8 +27,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Properties;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -54,7 +52,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     private int batchSize;
 
 
-    public Beamer(int poolSize, int batchSize, int queueSize) {
+    public Beamer(int poolSize, int batchSize, int queueSize, String instanceName) {
 
         super(poolSize, queueSize, Duration.ofSeconds(MAX_EXECUTUION_DURATION));
         this.batchSize = batchSize;
@@ -83,7 +81,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
         }
 
         //Every beamer should process all messages, therefore we add a random string to the group id.
-        props.setProperty("group.id", props.getProperty("group.id") + "-" + UUID.randomUUID().toString());
+        props.setProperty("group.id", props.getProperty("group.id") + "-" + instanceName);
 
         producer = new KafkaProducer(props);
         consumer = new KafkaConsumer(props);
@@ -172,16 +170,18 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
 
                             for (Session session : activeSessionsStreem.keySet()) {
-                                ArticleRequest request = activeSessionsStreem.get(session);
-                                if (request == null || request.getQuery() == null) {
-                                    //TODO: consider closing session with no request after a certain timeout
-                                    continue;
-                                }
+                                supplyAsyncInterruptExecutionWithin(() -> {
 
-                                request.setId(article.getId());
-                                //TODO: send article highlight and score
-                                if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
-                                    CompletableFuture<String> taks = CompletableFuture.supplyAsync(() -> {
+                                    ArticleRequest request = activeSessionsStreem.get(session);
+                                    if (request == null || request.getQuery() == null) {
+                                        //TODO: consider closing session with no request after a certain timeout
+                                        return null;
+                                    }
+
+                                    request.setId(article.getId());
+                                    //TODO: send article highlight and score
+                                    if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
+
                                         try {
                                             session.getBasicRemote().sendText(record.value());
                                             BeamerMain.addMetric("Articles streamed", 1);
@@ -189,12 +189,19 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                             activeSessionsStreem.remove(session);
                                         }
                                         return "ok";
-                                    });
-                                }
+                                    }
+                                    return null;
+                                }, this)
+                                        .exceptionally(throwable -> {
+                                            logger.error("Beamer unrecoverable error.", throwable);
+                                            return null;
+                                        });
                             }
                         } catch (IOException e) {
                             logger.fatal("Unable to deserialize articles", e);
                         }
+
+
                     }
                     if (record.topic().equals("processing-status")) {
                         for (Session session : activeSessionsLookup.keySet()) {

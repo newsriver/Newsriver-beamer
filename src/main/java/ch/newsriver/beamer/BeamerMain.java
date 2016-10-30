@@ -87,7 +87,7 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
 
         try {
             System.out.println("Threads pool size:" + this.getPoolSize() + "\tbatch size:" + this.getBatchSize() + "\tqueue size:" + this.getBatchSize());
-            beamer = new Beamer(this.getPoolSize(), this.getBatchSize(), this.getQueueSize());
+            beamer = new Beamer(this.getPoolSize(), this.getBatchSize(), this.getQueueSize(), this.getInstanceName());
             new Thread(beamer).start();
             server.start();
             server.join();
