@@ -135,9 +135,9 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                         if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
 
                                             try {
-                                                session.getBasicRemote().sendText(record.value());
+                                                session.getAsyncRemote().sendText(record.value());
                                                 BeamerMain.addMetric("Articles streamed", 1);
-                                            } catch (IOException e) {
+                                            } catch (Exception e) {
                                                 activeSessionsStreem.remove(session);
                                             }
                                             return;
