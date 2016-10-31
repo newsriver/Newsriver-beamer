@@ -22,13 +22,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by eliapalme on 11/03/16.
@@ -105,103 +104,54 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
             try {
                 this.waitFreeBatchExecutors(this.batchSize);
-                ConsumerRecords<String, String> records = consumer.poll(60000);
+                ConsumerRecords<String, String> records = consumer.poll(5000);
                 for (ConsumerRecord<String, String> record : records) {
 
                     if (record.topic().equals("processed-article")) {
+
+
                         try {
-                            Article article = mapper.readValue(record.value(), Article.class);
+                            final Article article = mapper.readValue(record.value(), Article.class);
 
                             //TODO: implement delayd comsumption in Stream class and replace this class with a stream in the Main class of the Beamer
                             //Delaying the consumption of the records. This is done to give time to Elasticsearch to index the new document
                             //Since ES does not immediately index new documents we need to delay the search phase.
-                            try {
-                                ZonedDateTime discoverTime = ZonedDateTime.parse(article.getDiscoverDate(), formatter);
-                                Duration duration = Duration.between(discoverTime, ZonedDateTime.now());
-                                if (duration.getSeconds() < CONSUMPTION_DELAY) {
-                                    Thread.sleep(Math.min(CONSUMPTION_DELAY, CONSUMPTION_DELAY - duration.getSeconds()) * 1000);
-                                }
-                            } catch (DateTimeParseException ex) {
-                                logger.fatal("Discover date is unparsable:" + article.getDiscoverDate(), ex);
-                            }
+                            this.schedule(() -> {
 
-
-                            //TODO: this is a temporary solution to identify Argus tests articles and store them in the db.
-                            /*
-                            try {
-
-                                URI articleURI = new URI(article.getUrl());
-                                String domain = null;
-                                if (article.getWebsite() != null) {
-                                    domain = article.getWebsite().getDomainName();
-                                }
-
-                                if (argusDomains.contains(articleURI.getHost()) || (domain != null && argusDomains.contains(domain))) {
-
-                                    String sql = "INSERT IGNORE INTO Newsriver.river (riverId,articleId,insertDate,discoverDate,publicationDate,host,url,title,text,json) VALUES (1,?,NOW(),?,?,?,?,?,?,?)";
-
-                                    try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources); PreparedStatement stmt = conn.prepareStatement(sql);) {
-
-
-                                        stmt.setString(1, article.getId());
-                                        stmt.setString(2, article.getDiscoverDate());
-                                        if (article.getPublishDate() != null) {
-                                            stmt.setString(3, article.getPublishDate());
-                                        } else {
-                                            stmt.setNull(3, Types.VARCHAR);
+                                for (Session session : activeSessionsStreem.keySet()) {
+                                    if (!session.isOpen()) {
+                                        logger.warn("Only open sessions are supposed to be in the activeSessionsStreem");
+                                        continue;
+                                    }
+                                    try {
+                                        ArticleRequest request = activeSessionsStreem.get(session);
+                                        if (request == null || request.getQuery() == null) {
+                                            //TODO: consider closing session with no request after a certain timeout
+                                            return;
                                         }
-                                        stmt.setString(4, articleURI.getHost());
-                                        stmt.setString(5, article.getUrl());
-                                        stmt.setString(6, article.getTitle());
-                                        stmt.setString(7, article.getText());
-                                        stmt.setString(8, record.value());
 
-                                        stmt.executeUpdate();
+                                        request.setId(article.getId());
+                                        //TODO: send article highlight and score
+                                        if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
 
-
-                                    } catch (SQLException e) {
-                                        logger.error("Unable to insert article to river table", e);
+                                            try {
+                                                session.getBasicRemote().sendText(record.value());
+                                                BeamerMain.addMetric("Articles streamed", 1);
+                                            } catch (IOException e) {
+                                                activeSessionsStreem.remove(session);
+                                            }
+                                            return;
+                                        }
+                                        return;
+                                    } catch (Exception ex) {
+                                        logger.error("Unable to stream article in session", ex);
                                     }
 
                                 }
-                            } catch (URISyntaxException e) {
-                                logger.error("Invalid article URL", e);
-                            }*/
-
-
-                            for (Session session : activeSessionsStreem.keySet()) {
-                                supplyAsyncInterruptExecutionWithin(() -> {
-
-                                    ArticleRequest request = activeSessionsStreem.get(session);
-                                    if (request == null || request.getQuery() == null) {
-                                        //TODO: consider closing session with no request after a certain timeout
-                                        return null;
-                                    }
-
-                                    request.setId(article.getId());
-                                    //TODO: send article highlight and score
-                                    if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
-
-                                        try {
-                                            session.getBasicRemote().sendText(record.value());
-                                            BeamerMain.addMetric("Articles streamed", 1);
-                                        } catch (IOException e) {
-                                            activeSessionsStreem.remove(session);
-                                        }
-                                        return "ok";
-                                    }
-                                    return null;
-                                }, this)
-                                        .exceptionally(throwable -> {
-                                            logger.error("Beamer unrecoverable error.", throwable);
-                                            return null;
-                                        });
-                            }
-                        } catch (IOException e) {
-                            logger.fatal("Unable to deserialize articles", e);
+                            }, 60, TimeUnit.SECONDS);
+                        } catch (IOException ex) {
+                            logger.fatal("Unable to deserialize article", ex);
                         }
-
-
                     }
                     if (record.topic().equals("processing-status")) {
                         for (Session session : activeSessionsLookup.keySet()) {

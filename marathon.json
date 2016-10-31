@@ -34,8 +34,8 @@
     "HAPROXY_0_REDIRECT_TO_HTTPS": "true"
   },
   "args": [
-    "--threads=50",
-    "--batch=50",
-    "--queue=100"
+    "--threads=100",
+    "--batch=100",
+    "--queue=500"
   ]
 }
