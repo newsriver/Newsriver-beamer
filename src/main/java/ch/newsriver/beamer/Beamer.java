@@ -133,10 +133,12 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                         request.setId(article.getId());
                                         //TODO: send article highlight and score
                                         if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
-
                                             try {
-                                                //TODO: consyder using async send if too many expection are raised.
-                                                session.getBasicRemote().sendText(record.value());
+                                                //TODO: consider using async send if too many exception are raised.
+                                                //TODO: consider one thread per session. The issue is that if a websocket is slow it will slowup all other open sessions.
+                                                synchronized (session) {
+                                                    session.getBasicRemote().sendText(record.value());
+                                                }
                                                 BeamerMain.addMetric("Articles streamed", 1);
                                             } catch (IOException e) {
                                                 logger.error("Unable to send message.", e);
