@@ -8,6 +8,7 @@ import ch.newsriver.executable.poolExecution.BatchInterruptibleWithinExecutorPoo
 import ch.newsriver.util.http.HttpClientPool;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -81,6 +82,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
         //Every beamer should process all messages, therefore we add a random string to the group id.
         props.setProperty("group.id", props.getProperty("group.id") + "-" + instanceName);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
 
         producer = new KafkaProducer(props);
         consumer = new KafkaConsumer(props);
@@ -132,13 +134,15 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
                                         request.setId(article.getId());
                                         //TODO: send article highlight and score
+                                        //TODO: needs to be locally filtered, its too heavy on elastic search or es needs to be scaled
                                         if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
                                             try {
                                                 //TODO: consider using async send if too many exception are raised.
                                                 //TODO: consider one thread per session. The issue is that if a websocket is slow it will slowup all other open sessions.
-                                                synchronized (session) {
-                                                    session.getBasicRemote().sendText(record.value());
-                                                }
+                                                //TODO: not sure about this synchronized
+                                                //synchronized (session) {
+                                                session.getBasicRemote().sendText(record.value());
+                                                //}
                                                 BeamerMain.addMetric("Articles streamed", 1);
                                             } catch (IOException e) {
                                                 logger.error("Unable to send message.", e);
