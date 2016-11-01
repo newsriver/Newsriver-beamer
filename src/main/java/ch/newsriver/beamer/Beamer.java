@@ -135,10 +135,12 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                         if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
 
                                             try {
-                                                session.getAsyncRemote().sendText(record.value());
+                                                //TODO: consyder using async send if too many expection are raised.
+                                                session.getBasicRemote().sendText(record.value());
                                                 BeamerMain.addMetric("Articles streamed", 1);
-                                            } catch (Exception e) {
-                                                activeSessionsStreem.remove(session);
+                                            } catch (IOException e) {
+                                                logger.error("Unable to send message.", e);
+                                                //activeSessionsStreem.remove(session);
                                             }
                                             return;
                                         }
