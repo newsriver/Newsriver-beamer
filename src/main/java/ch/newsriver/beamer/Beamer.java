@@ -187,10 +187,10 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
             } catch (BatchSizeException ex) {
                 logger.fatal("Requested a batch size bigger than pool capability.");
             */
-                for (Session session : activeSessionsStreem.keySet()) {
+                /*for (Session session : activeSessionsStreem.keySet()) {
                     session.getBasicRemote().sendText("PINGG");
 
-                }
+                }*/
 
 
             } catch (Exception ex) {
