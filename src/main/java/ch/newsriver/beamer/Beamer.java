@@ -149,7 +149,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                         logger.error("Unable to send message.", e);
                                         //activeSessionsStreem.remove(session);
                                     }
-                                    return;
+                                    //return;
                                     //}
                                     //return;
                                 } catch (Exception ex) {
