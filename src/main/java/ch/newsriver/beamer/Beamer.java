@@ -84,7 +84,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
         producer = new KafkaProducer(props);
         consumer = new KafkaConsumer(props);
-        consumer.subscribe(Arrays.asList("raw-article", "processing-status"));
+        consumer.subscribe(Arrays.asList("processed-article", "processing-status"));
 
 
     }
