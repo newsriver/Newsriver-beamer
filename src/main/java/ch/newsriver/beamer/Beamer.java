@@ -2,6 +2,7 @@ package ch.newsriver.beamer;
 
 
 import ch.newsriver.data.content.Article;
+import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.content.ArticleRequest;
 import ch.newsriver.executable.poolExecution.BatchInterruptibleWithinExecutorPool;
 import ch.newsriver.util.http.HttpClientPool;
@@ -27,6 +28,7 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by eliapalme on 11/03/16.
@@ -103,13 +105,11 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
         while (run) {
 
             try {
-                //TODO:version direct
-                //this.waitFreeBatchExecutors(this.batchSize);
+                this.waitFreeBatchExecutors(this.batchSize);
                 ConsumerRecords<String, String> records = consumer.poll(5000);
                 for (ConsumerRecord<String, String> record : records) {
 
                     if (record.topic().equals("processed-article")) {
-
 
                         try {
                             final Article article = mapper.readValue(record.value(), Article.class);
@@ -117,47 +117,36 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                             //TODO: implement delayd comsumption in Stream class and replace this class with a stream in the Main class of the Beamer
                             //Delaying the consumption of the records. This is done to give time to Elasticsearch to index the new document
                             //Since ES does not immediately index new documents we need to delay the search phase.
-                            //TODO:version direct
-                            //this.schedule(() -> {
-
-                            for (Session session : activeSessionsStreem.keySet()) {
-                                /*if (!session.isOpen()) {
-                                    logger.warn("Only open sessions are supposed to be in the activeSessionsStreem");
-                                    continue;
-                                }*/
-                                try {
-                                    //TODO:version direct
-                                    //ArticleRequest request = activeSessionsStreem.get(session);
-                                    //if (request == null || request.getQuery() == null) {
-                                    //TODO: consider closing session with no request after a certain timeout
-                                    //    return;
-                                    //}
-
-                                    //request.setId(article.getId());
-                                    //TODO: send article highlight and score
-                                    //TODO: needs to be locally filtered, its too heavy on elastic search or es needs to be scaled
-                                    //if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
+                            this.schedule(() -> {
+                                for (Session session : activeSessionsStreem.keySet()) {
                                     try {
-                                        //TODO: consider using async send if too many exception are raised.
-                                        //TODO: consider one thread per session. The issue is that if a websocket is slow it will slowup all other open sessions.
-                                        //TODO: not sure about this synchronized
-                                        //synchronized (session) {
-                                        session.getBasicRemote().sendText(record.value());
-                                        //}
-                                        BeamerMain.addMetric("Articles streamed", 1);
-                                    } catch (IOException e) {
-                                        logger.error("Unable to send message.", e);
-                                        //activeSessionsStreem.remove(session);
+                                        //TODO:version direct
+                                        ArticleRequest request = activeSessionsStreem.get(session);
+                                        if (request == null || request.getQuery() == null) {
+                                            //TODO: consider closing session with no request after a certain timeout
+                                            return;
+                                        }
+                                        request.setId(article.getId());
+                                        //TODO: send article highlight and score
+                                        //TODO: needs to be locally filtered, its too heavy on elastic search or es needs to be scaled
+                                        if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
+                                            try {
+                                                //TODO: consider using async send if too many exception are raised.
+                                                //TODO: consider one thread per session. The issue is that if a websocket is slow it will slowup all other open sessions.
+                                                //TODO: not sure about this synchronized maybe replace with async
+                                                synchronized (session) {
+                                                    session.getBasicRemote().sendText(record.value());
+                                                }
+                                                BeamerMain.addMetric("Articles streamed", 1);
+                                            } catch (IOException e) {
+                                                logger.error("Unable to send message.", e);
+                                            }
+                                        }
+                                    } catch (Exception ex) {
+                                        logger.error("Unable to stream article in session", ex);
                                     }
-                                    //return;
-                                    //}
-                                    //return;
-                                } catch (Exception ex) {
-                                    logger.error("Unable to stream article in session", ex);
                                 }
-
-                            }
-                            //}, 60, TimeUnit.SECONDS);
+                            }, 60, TimeUnit.SECONDS);
                         } catch (IOException ex) {
                             logger.fatal("Unable to deserialize article", ex);
                         }
@@ -179,27 +168,16 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                         }
                     }
                 }
-                //TODO:version direct
-            /*} catch (InterruptedException ex) {
+            } catch (InterruptedException ex) {
                 logger.warn("Beaming job interrupted", ex);
                 run = false;
                 return;
             } catch (BatchSizeException ex) {
                 logger.fatal("Requested a batch size bigger than pool capability.");
-            */
-                /*for (Session session : activeSessionsStreem.keySet()) {
-                    session.getBasicRemote().sendText("PINGG");
-
-                }*/
-
-
             } catch (Exception ex) {
                 logger.fatal("Exception in main Beamer loop", ex);
             }
-            continue;
         }
-
-
     }
 
 }
