@@ -84,7 +84,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
         producer = new KafkaProducer(props);
         consumer = new KafkaConsumer(props);
-        consumer.subscribe(Arrays.asList("processed-article", "processing-status"));
+        consumer.subscribe(Arrays.asList("raw-article", "processing-status"));
 
 
     }
@@ -121,10 +121,10 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                             //this.schedule(() -> {
 
                             for (Session session : activeSessionsStreem.keySet()) {
-                                if (!session.isOpen()) {
+                                /*if (!session.isOpen()) {
                                     logger.warn("Only open sessions are supposed to be in the activeSessionsStreem");
                                     continue;
-                                }
+                                }*/
                                 try {
                                     //TODO:version direct
                                     //ArticleRequest request = activeSessionsStreem.get(session);
@@ -187,6 +187,12 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
             } catch (BatchSizeException ex) {
                 logger.fatal("Requested a batch size bigger than pool capability.");
             */
+                for (Session session : activeSessionsStreem.keySet()) {
+                    session.getBasicRemote().sendText("PINGG");
+
+                }
+
+
             } catch (Exception ex) {
                 logger.fatal("Exception in main Beamer loop", ex);
             }
