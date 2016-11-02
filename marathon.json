@@ -30,7 +30,7 @@
   ],
   "labels": {
     "HAPROXY_GROUP": "external",
-    "HAPROXY_0_VHOST": "preview.api.newsriver.io",
+    "HAPROXY_0_VHOST": "api-preview.newsriver.io",
     "HAPROXY_0_REDIRECT_TO_HTTPS": "true"
   },
   "args": [
