@@ -1,12 +1,16 @@
 package ch.newsriver.beamer;
 
 
+import ch.newsriver.beamer.websocket.v2.WebSocketAPIHandler;
+import ch.newsriver.dao.ElasticsearchUtil;
 import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.content.ArticleRequest;
+import ch.newsriver.data.content.HighlightedArticle;
 import ch.newsriver.executable.poolExecution.BatchInterruptibleWithinExecutorPool;
 import ch.newsriver.util.http.HttpClientPool;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -21,6 +25,9 @@ import javax.websocket.Session;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
@@ -41,6 +48,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     private static final Logger logger = LogManager.getLogger(Beamer.class);
     private static final SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     private static final ObjectMapper mapper = new ObjectMapper();
+    ;
     private static int MAX_EXECUTUION_DURATION = 120;
     private static int CONSUMPTION_DELAY = 60;
     public ConcurrentMap<Session, ArticleRequest> activeSessionsStreem;
@@ -48,15 +56,20 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     Consumer<String, String> consumer;
     Producer<String, String> producer;
+    LocalESInstance localES;
     private boolean run = false;
     private int batchSize;
 
 
-    public Beamer(int poolSize, int batchSize, int queueSize, String instanceName) {
+    public Beamer(int poolSize, int batchSize, int queueSize, String instanceName, String localESPath) {
 
         super(poolSize, queueSize, Duration.ofSeconds(MAX_EXECUTUION_DURATION));
         this.batchSize = batchSize;
         run = true;
+
+        this.mapper.setConfig(mapper.getSerializationConfig().withView(WebSocketAPIHandler.StreemJSONView.class));
+
+
         activeSessionsStreem = new ConcurrentHashMap<>();
         activeSessionsLookup = new ConcurrentHashMap<>();
 
@@ -88,6 +101,10 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
         consumer = new KafkaConsumer(props);
         consumer.subscribe(Arrays.asList("processed-article", "processing-status"));
 
+        this.localES = new LocalESInstance(localESPath);
+        if (this.localES.replicateIndex("newsriver", ElasticsearchUtil.getInstance().getClient())) {
+            this.localES.setLocalTTL("newsriver", "5m");
+        }
 
     }
 
@@ -114,6 +131,17 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                         try {
                             final Article article = mapper.readValue(record.value(), Article.class);
 
+                            String urlHash = "";
+                            try {
+                                MessageDigest digest = MessageDigest.getInstance("SHA-512");
+                                byte[] hash = digest.digest(article.getUrl().getBytes(StandardCharsets.UTF_8));
+                                urlHash = Base64.encodeBase64URLSafeString(hash);
+                            } catch (NoSuchAlgorithmException e) {
+                                logger.fatal("Unable to compute URL hash", e);
+                            }
+
+                            ArticleFactory.getInstance().saveArticle(article, urlHash, this.localES.getClient());
+
                             //TODO: implement delayd comsumption in Stream class and replace this class with a stream in the Main class of the Beamer
                             //Delaying the consumption of the records. This is done to give time to Elasticsearch to index the new document
                             //Since ES does not immediately index new documents we need to delay the search phase.
@@ -128,15 +156,21 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                         }
                                         request.setId(article.getId());
                                         //TODO: send article highlight and score
-                                        //TODO: needs to be locally filtered, its too heavy on elastic search or es needs to be scaled
-                                        if (!ArticleFactory.getInstance().searchArticles(request).isEmpty()) {
+                                        for (HighlightedArticle hArticle : ArticleFactory.getInstance().searchArticles(request, this.localES.getClient())) {
                                             try {
                                                 //TODO: consider using async send if too many exception are raised.
                                                 //TODO: consider one thread per session. The issue is that if a websocket is slow it will slowup all other open sessions.
-                                                //TODO: not sure about this synchronized maybe replace with async
+                                                //TODO: not sure about this synchronized maybe replace with the async
                                                 synchronized (session) {
-                                                    session.getBasicRemote().sendText(record.value());
+                                                    session.getBasicRemote().sendText(mapper.writeValueAsString(hArticle));
                                                 }
+
+                                                try {
+                                                    UsageLogger.logDataPoint((long) session.getUserProperties().get("userId"), 1, "/v2/search-stream");
+                                                } catch (Exception e) {
+                                                    logger.fatal("unable to log usage", e);
+                                                }
+
                                                 BeamerMain.addMetric("Articles streamed", 1);
                                             } catch (IOException e) {
                                                 logger.error("Unable to send message.", e);
@@ -179,5 +213,6 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
             }
         }
     }
+
 
 }

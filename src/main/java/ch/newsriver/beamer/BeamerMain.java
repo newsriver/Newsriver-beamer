@@ -2,6 +2,9 @@ package ch.newsriver.beamer;
 
 import ch.newsriver.beamer.websocket.v2.WebSocketAPIHandler;
 import ch.newsriver.executable.poolExecution.MainWithPoolExecutorOptions;
+import org.apache.commons.cli.Option;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -13,6 +16,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import javax.servlet.ServletException;
 import javax.websocket.DeploymentException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.SortedMap;
 
 
@@ -24,17 +28,23 @@ import java.util.SortedMap;
 public class BeamerMain extends MainWithPoolExecutorOptions {
 
     private static final int DEFAUTL_PORT = 9090;
+    private static final LinkedList<Option> additionalOptions = new LinkedList<>();
+    private static final Logger logger = LogManager.getLogger(BeamerMain.class);
     public static Beamer beamer;
+
+    static {
+        additionalOptions.add(Option.builder("es").longOpt("es-path").hasArg().desc("Local ES home path").build());
+    }
+
     private Server server;
 
-
     public BeamerMain(String[] args) {
-        super(args, false);
+        super(args, additionalOptions, false);
+
     }
 
     public static void main(String[] args) {
         new BeamerMain(args);
-
     }
 
     static public HashMap<String, SortedMap<Long, Long>> getMetric() {
@@ -87,7 +97,7 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
 
         try {
             System.out.println("Threads pool size:" + this.getPoolSize() + "\tbatch size:" + this.getBatchSize() + "\tqueue size:" + this.getQueueSize());
-            beamer = new Beamer(this.getPoolSize(), this.getBatchSize(), this.getQueueSize(), this.getInstanceName());
+            beamer = new Beamer(this.getPoolSize(), this.getBatchSize(), this.getQueueSize(), this.getInstanceName(), super.getCustomOption("es"));
             new Thread(beamer).start();
             server.start();
             server.join();

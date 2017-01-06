@@ -1,6 +1,7 @@
 package ch.newsriver.beamer.servlet.v2;
 
 
+import ch.newsriver.beamer.UsageLogger;
 import ch.newsriver.dao.JDBCPoolUtil;
 import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
@@ -39,10 +40,6 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 /**
  * Created by eliapalme on 06/05/16.
@@ -53,59 +50,12 @@ import java.util.concurrent.Future;
 public class RestAPIHandler {
     private static final Logger log = LogManager.getLogger(RestAPIHandler.class);
     private static final ObjectMapper mapper = new ObjectMapper();
-    private final static ExecutorService service = Executors.newFixedThreadPool(10);
 
     static {
         Intercom.setApiKey("2a87448659f01b6bfae8aaf5c968551b1cea9294");
         Intercom.setAppID("zi3ghfd1");
     }
 
-    public static Future<Boolean> logUsage(final long userId, final String query, final long resultCount) {
-
-        return service.submit(new Callable<Boolean>() {
-            @Override
-            public Boolean call() throws Exception {
-
-                try {
-                    io.intercom.api.User user = new io.intercom.api.User()
-                            .setUserId("" + userId)
-                            .setUpdateLastRequestAt(true)
-                            .setNewSession(true);
-                    io.intercom.api.User.update(user);
-                } catch (Exception e) {
-                }
-                ;
-
-                final String sqlQuery = "INSERT INTO logQuery     (userId,queryHash,count,query,lastExecution,cumulatedResults) VALUES (?,SHA2(?,512),1,?,now(),?) ON DUPLICATE KEY UPDATE  count=count+1,lastExecution=NOW(),cumulatedResults=cumulatedResults+?";
-                final String sqlCount = "INSERT INTO logDataPoint (userId,day,count) VALUES (?,NOW(),?) ON DUPLICATE KEY UPDATE  count=count+?";
-
-                try (Connection conn = JDBCPoolUtil.getInstance().getConnection(JDBCPoolUtil.DATABASES.Sources);
-                     PreparedStatement stmtQuery = conn.prepareStatement(sqlQuery);
-                     PreparedStatement stmtCount = conn.prepareStatement(sqlCount)) {
-
-                    stmtQuery.setLong(1, userId);
-                    stmtQuery.setString(2, query);
-                    stmtQuery.setString(3, query);
-                    stmtQuery.setLong(4, resultCount);
-                    stmtQuery.setLong(5, resultCount);
-                    stmtQuery.executeUpdate();
-
-                    stmtCount.setLong(1, userId);
-                    stmtCount.setLong(2, resultCount);
-                    stmtCount.setLong(3, resultCount);
-                    stmtCount.executeUpdate();
-
-
-                } catch (SQLException e) {
-                    log.fatal("Unable to crete user", e);
-                    return false;
-                }
-
-                return true;
-            }
-
-        });
-    }
 
     @GET
     @Path("/search")
@@ -141,7 +91,9 @@ public class RestAPIHandler {
         List<HighlightedArticle> result = ArticleFactory.getInstance().searchArticles(searchRequest);
 
         try {
-            logUsage(token.getUserId(), searchRequest.getQuery(), result.size());
+            UsageLogger.logQuery(token.getUserId(), searchRequest.getQuery(), result.size(), "/v2/search");
+            UsageLogger.logDataPoint(token.getUserId(), result.size(), "/v2/search");
+            UsageLogger.logAPIcall(token.getUserId(), "/v2/search");
         } catch (Exception e) {
             log.fatal("unable to log usage", e);
         }

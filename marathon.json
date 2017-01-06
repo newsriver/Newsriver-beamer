@@ -36,6 +36,7 @@
   "args": [
     "--threads=50",
     "--batch=100",
-    "--queue=500"
+    "--queue=500",
+    "--es-path=/home"
   ]
 }
