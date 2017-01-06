@@ -4,6 +4,18 @@ version '0.1.1' + '.' + (System.getenv("BUILD_NUMBER") ?: 'dev')
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'docker'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'se.transmode.gradle:gradle-docker:1.2'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+    }
+}
 
 
 
@@ -50,27 +62,19 @@ dependencies {
 
 
 
-task fatJar(type: Jar) {
+
+shadowJar {
     manifest {
         attributes 'Implementation-Title': 'Newsriver Beamer',
                 'Implementation-Version': version,
                 'Main-Class': 'ch.newsriver.beamer.BeamerMain'
     }
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
-    zip64 true
     baseName = project.name
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
+    mergeServiceFiles()
 }
 
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'se.transmode.gradle:gradle-docker:1.2'
-    }
-}
+
 
 
 docker {
@@ -92,3 +96,4 @@ task buildimage(type: Docker, dependsOn: [clean, fatJar]) {
         }
     }
 }
+
