@@ -3,7 +3,6 @@ version '0.1.1' + '.' + (System.getenv("BUILD_NUMBER") ?: 'dev')
 
 apply plugin: 'java'
 apply plugin: 'application'
-apply plugin: 'docker'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 buildscript {
@@ -12,7 +11,6 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'se.transmode.gradle:gradle-docker:1.2'
         classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
     }
 }
@@ -77,23 +75,4 @@ shadowJar {
 
 
 
-docker {
-    registry = 'https://docker-registry.newsriver.io:5000'
-
-}
-
-task buildimage(type: Docker, dependsOn: [clean, fatJar]) {
-    push = true
-    tagVersion = 'latest'
-    registry = 'docker-registry.newsriver.io:5000'
-    applicationName = 'newsriver-beamer'
-    dockerfile = project.file('Dockerfile')
-
-    doFirst {
-        copy {
-            from jar
-            into stageDir
-        }
-    }
-}
 
