@@ -44,7 +44,7 @@ def deployDockerImage(projectName, dockerRegistry) {
     stage 'build'
     initDocker()
     sh 'gradle clean'
-    sh 'gradle fatJar'
+    sh 'gradle shadowJar'
 
     dir('docker') {
         deleteDir()
