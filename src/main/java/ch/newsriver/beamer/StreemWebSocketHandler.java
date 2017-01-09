@@ -45,11 +45,22 @@ public class StreemWebSocketHandler {
         try {
 
             ArticleRequest searchRequest = mapper.readValue(txt, ArticleRequest.class);
+
+
+            //For some transition time we acccept requrest without token.
+            session.getUserProperties().put("userId", -2l);
+
             BeamerMain.beamer.activeSessionsStreem.put(session, searchRequest);
             ObjectWriter w = mapper.writerWithView(StreemJSONView.class);
             List<HighlightedArticle> articles = ArticleFactory.getInstance().searchArticles(searchRequest);
             for (Article article : articles) {
                 session.getBasicRemote().sendText(w.writeValueAsString(article));
+            }
+
+            try {
+                UsageLogger.logDataPoint((long) session.getUserProperties().get("userId"), articles.size(), "/streamWebSocket");
+                UsageLogger.logAPIcall((long) session.getUserProperties().get("userId"), "/streamWebSocket");
+            } catch (Exception e) {
             }
 
         } catch (IOException e) {

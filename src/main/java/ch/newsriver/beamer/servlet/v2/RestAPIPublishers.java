@@ -1,0 +1,78 @@
+package ch.newsriver.beamer.servlet.v2;
+
+import ch.newsriver.data.user.token.TokenBase;
+import ch.newsriver.data.user.token.TokenFactory;
+import ch.newsriver.data.website.WebSite;
+import ch.newsriver.data.website.WebSiteFactory;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.OPTIONS;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.List;
+
+/**
+ * Created by eliapalme on 09.01.17.
+ */
+
+@Path("/v2/publisher")
+public class RestAPIPublishers {
+
+
+    private static final Logger log = LogManager.getLogger(ch.newsriver.beamer.servlet.v2.RestAPIHandler.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+
+    @GET
+    @Path("/search")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @JsonView(WebSite.JSONViews.API.class)
+    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String query) throws JsonProcessingException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+
+        if (tokenStr == null) {
+            return Response.serverError().entity("Authorization token missing").build();
+        }
+
+
+        TokenFactory tokenFactory = new TokenFactory();
+        TokenBase token = tokenFactory.verifyToken(tokenStr);
+
+        if (token == null) {
+            return Response.serverError().entity("Invalid Token").build();
+        }
+
+        String queryStr = "hostName:\"*" + query + "\"* AND name:*" + query + "*";
+
+        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithQuery(queryStr, 20);
+
+        return Response.ok(webSites, MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
+    @OPTIONS
+    @Path("/search")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    public String searchOp(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+        return "ok";
+    }
+}
