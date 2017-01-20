@@ -65,13 +65,15 @@ shadowJar {
     manifest {
         attributes 'Implementation-Title': 'Newsriver Beamer',
                 'Implementation-Version': version,
-                'Main-Class': 'ch.newsriver.beamer.BeamerMain'
+                'Main-Class': 'ch.newsriver.beamer.BeamerMain',
+                'Change': 'nenedForES5',
+                'Build-Date': 'nenedForES5'
+
     }
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
     baseName = project.name
     mergeServiceFiles()
 }
-
 
 
 
