@@ -20,6 +20,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.node.NodeValidationException;
 
 import javax.websocket.Session;
 import java.io.FileNotFoundException;
@@ -61,7 +62,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     private int batchSize;
 
 
-    public Beamer(int poolSize, int batchSize, int queueSize, String instanceName, String localESPath) {
+    public Beamer(int poolSize, int batchSize, int queueSize, String instanceName, String localESPath) throws NodeValidationException {
 
         super(poolSize, queueSize, Duration.ofSeconds(MAX_EXECUTUION_DURATION));
         this.batchSize = batchSize;
