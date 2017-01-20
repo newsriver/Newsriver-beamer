@@ -38,5 +38,8 @@
     "--batch=100",
     "--queue=500",
     "--es-path=/home"
+  ],
+  "acceptedResourceRoles": [
+    "slave_public"
   ]
 }
