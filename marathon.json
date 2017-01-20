@@ -2,7 +2,7 @@
   "id": "/newsriver/newsriver-beamer",
   "cmd": null,
   "cpus": 0.5,
-  "mem": 678,
+  "mem": 1536,
   "disk": 0,
   "instances": 1,
   "container": {
