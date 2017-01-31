@@ -10,7 +10,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
+import org.elasticsearch.node.NodeValidationException;
 
 import java.io.IOException;
 
@@ -23,16 +23,15 @@ public class LocalESInstance {
     Client client;
 
 
-    public LocalESInstance(String path) {
+    public LocalESInstance(String path) throws NodeValidationException {
 
-        Settings settings = Settings.settingsBuilder()
-                .put("node.http.enabled", false)
-                .put("index.gateway.type", "none")
-                .put("index.store.type", "simplefs")
-                .put("index.number_of_shards", 1)
+        Settings settings = Settings.builder()
                 .put("path.home", path)
-                .put("index.number_of_replicas", 0).build();
-        Node node = NodeBuilder.nodeBuilder().local(true).settings(settings).node();
+                .put("transport.type", "local")
+                .put("http.enabled", false).build();
+
+
+        Node node = new Node(settings).start();
         this.client = node.client();
 
     }

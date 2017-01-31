@@ -2,9 +2,8 @@
 
 def marathonAppId = '/newsriver/newsriver-beamer'
 def projectName = 'newsriver-beamer'
-def dockerRegistry = 'docker-registry.newsriver.io:5000'
-def marathonURL = 'http://46.4.71.105:8080/'
-
+def dockerRegistry = 'docker-registry-v2.newsriver.io:5000'
+def marathonURL = 'http://leader.mesos:8080/'
 node {
 
     stage 'checkout project'

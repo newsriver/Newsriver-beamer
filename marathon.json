@@ -1,15 +1,15 @@
 {
   "id": "/newsriver/newsriver-beamer",
   "cmd": null,
-  "cpus": 1,
-  "mem": 2048,
+  "cpus": 0.5,
+  "mem": 1536,
   "disk": 0,
   "instances": 1,
   "container": {
     "type": "DOCKER",
     "volumes": [],
     "docker": {
-      "image": "docker-registry.newsriver.io:5000/newsriver-beamer:latest",
+      "image": "docker-registry-v2.newsriver.io:5000/newsriver-beamer:latest",
       "network": "HOST",
       "privileged": false,
       "parameters": [],
@@ -30,7 +30,7 @@
   ],
   "labels": {
     "HAPROXY_GROUP": "external",
-    "HAPROXY_0_VHOST": "api.newsriver.io",
+    "HAPROXY_0_VHOST": "api.newsriver.io,api-preview.newsriver.io",
     "HAPROXY_0_REDIRECT_TO_HTTPS": "true"
   },
   "args": [
@@ -38,5 +38,8 @@
     "--batch=100",
     "--queue=500",
     "--es-path=/home"
+  ],
+  "acceptedResourceRoles": [
+    "slave_public"
   ]
 }
