@@ -8,6 +8,7 @@ import ch.newsriver.data.content.HighlightedArticle;
 import ch.newsriver.data.website.WebSite;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import org.elasticsearch.search.sort.SortOrder;
 
 import javax.websocket.CloseReason;
 import javax.websocket.OnClose;
@@ -45,6 +46,12 @@ public class StreemWebSocketHandler {
         try {
 
             ArticleRequest searchRequest = mapper.readValue(txt, ArticleRequest.class);
+
+            //for back compatibility if no sort order is defined we set discoverDate
+            if (searchRequest.getSortBy() == null) {
+                searchRequest.setSortBy("discoverDate");
+                searchRequest.setSortOrder(SortOrder.DESC);
+            }
 
 
             //For some transition time we acccept requrest without token.

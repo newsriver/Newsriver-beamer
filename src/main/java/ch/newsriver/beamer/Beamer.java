@@ -156,6 +156,8 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                                             return;
                                         }
                                         request.setId(article.getId());
+                                        request.setSortBy("_score");
+
                                         //TODO: send article highlight and score
                                         for (HighlightedArticle hArticle : ArticleFactory.getInstance().searchArticles(request, this.localES.getClient())) {
                                             try {

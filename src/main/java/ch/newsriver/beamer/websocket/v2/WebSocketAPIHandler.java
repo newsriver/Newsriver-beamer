@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.search.sort.SortOrder;
 
 import javax.websocket.CloseReason;
 import javax.websocket.HandshakeResponse;
@@ -73,6 +74,14 @@ public class WebSocketAPIHandler {
     public void onMessage(String txt, Session session) throws IOException {
         try {
             ArticleRequest searchRequest = mapper.readValue(txt, ArticleRequest.class);
+
+            //for back compatibility if no sort order is defined we set discoverDate
+            if (searchRequest.getSortBy() == null) {
+                searchRequest.setSortBy("discoverDate");
+                searchRequest.setSortOrder(SortOrder.DESC);
+            }
+
+
             BeamerMain.beamer.activeSessionsStreem.put(session, searchRequest);
             ObjectWriter w = mapper.writerWithView(StreemJSONView.class);
             List<HighlightedArticle> articles = ArticleFactory.getInstance().searchArticles(searchRequest);

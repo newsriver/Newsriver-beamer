@@ -23,14 +23,26 @@ import com.microtripit.mandrillapp.lutung.view.MandrillMessage;
 import com.microtripit.mandrillapp.lutung.view.MandrillMessageStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.search.sort.SortOrder;
 
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.OPTIONS;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,12 +100,14 @@ public class RestAPIHandler {
     @Path("/search/news")
     @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     @JsonView(APIJSONView.class)
-    public List<HighlightedArticle> search(@QueryParam("searchPhrase") String searchPhrase, @DefaultValue("100") @QueryParam("limit") int limit) throws JsonProcessingException {
+    public List<HighlightedArticle> search(@QueryParam("searchPhrase") String searchPhrase, @DefaultValue("discoverDate") @QueryParam("sortBy") String sortBy, @DefaultValue("DESC") @QueryParam("sortOrder") SortOrder sortOrder, @DefaultValue("100") @QueryParam("limit") int limit) throws JsonProcessingException {
 
 
         ArticleRequest searchRequest = new ArticleRequest();
         searchRequest.setLimit(limit);
         searchRequest.setQuery(searchPhrase);
+        searchRequest.setSortBy(sortBy);
+        searchRequest.setSortOrder(sortOrder);
         return ArticleFactory.getInstance().searchArticles(searchRequest);
     }
 

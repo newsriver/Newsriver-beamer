@@ -20,6 +20,7 @@ import io.intercom.api.CustomAttribute;
 import io.intercom.api.Intercom;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.search.sort.SortOrder;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.DefaultValue;
@@ -61,7 +62,7 @@ public class RestAPIHandler {
     @Path("/search")
     @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     @JsonView(APIJSONView.class)
-    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String searchPhrase, @DefaultValue("25") @QueryParam("limit") int limit) throws JsonProcessingException {
+    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String searchPhrase, @DefaultValue("discoverDate") @QueryParam("sortBy") String sortBy, @DefaultValue("DESC") @QueryParam("sortOrder") SortOrder sortOrder, @DefaultValue("25") @QueryParam("limit") int limit) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
         servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
@@ -87,6 +88,8 @@ public class RestAPIHandler {
         ArticleRequest searchRequest = new ArticleRequest();
         searchRequest.setLimit(limit);
         searchRequest.setQuery(searchPhrase);
+        searchRequest.setSortBy(sortBy);
+        searchRequest.setSortOrder(sortOrder);
 
         List<HighlightedArticle> result = ArticleFactory.getInstance().searchArticles(searchRequest);
 
