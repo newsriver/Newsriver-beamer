@@ -15,6 +15,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
@@ -75,4 +76,48 @@ public class RestAPIPublishers {
 
         return "ok";
     }
+
+
+    @OPTIONS
+    @Path("{id}")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    public String getPublisherOp(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+        return "ok";
+    }
+
+    @GET
+    @Path("{id}")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @JsonView(WebSite.JSONViews.API.class)
+    public Response getPublisher(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @PathParam("id") String hostname) throws JsonProcessingException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+
+        if (tokenStr == null) {
+            return Response.serverError().entity("Authorization token missing").build();
+        }
+
+
+        TokenFactory tokenFactory = new TokenFactory();
+        TokenBase token = tokenFactory.verifyToken(tokenStr);
+
+        if (token == null) {
+            return Response.serverError().entity("Invalid Token").build();
+        }
+
+
+        WebSite webSite = WebSiteFactory.getInstance().getWebsite(hostname);
+
+        return Response.ok(webSite, MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
+
 }
