@@ -7,6 +7,7 @@ import ch.newsriver.data.website.WebSiteFactory;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,6 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.OPTIONS;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -21,6 +23,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -117,6 +120,51 @@ public class RestAPIPublishers {
         WebSite webSite = WebSiteFactory.getInstance().getWebsite(hostname);
 
         return Response.ok(webSite, MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
+
+    @POST
+    @Path("{id}")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @JsonView(WebSite.JSONViews.API.class)
+    public Response setPublisher(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @PathParam("id") String hostname, String publisherJSON) throws JsonProcessingException, IOException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+
+        if (tokenStr == null) {
+            return Response.serverError().entity("Authorization token missing").build();
+        }
+
+
+        TokenFactory tokenFactory = new TokenFactory();
+        TokenBase token = tokenFactory.verifyToken(tokenStr);
+        if (token == null) {
+            return Response.serverError().entity("Invalid Token").build();
+        }
+
+        //TODO: here verify that user has publisher edit grants
+
+
+        WebSite originalWebSite = WebSiteFactory.getInstance().getWebsite(hostname);
+
+        //Because the JSON object sent over the API is a subset of the JSON stored in Elastic
+        //We need to merge the new version with the full version
+        //Also note that we are not de-serialising the publisherJSON because the serialized version is a view of full JSON
+        //meaning that some fields would result being null if deserialize into a WebSite object.
+        ObjectReader updater = mapper.readerForUpdating(originalWebSite);
+        originalWebSite = updater.readValue(publisherJSON);
+
+
+        if (!originalWebSite.getHostName().equalsIgnoreCase(hostname)) {
+            return Response.serverError().entity("Path id (hostname) and the posted Publisher hostname must be the same.").build();
+        }
+
+        //WebSiteFactory.getInstance().updateWebsite(originalWebSite);
+
+        return Response.ok(originalWebSite, MediaType.APPLICATION_JSON_TYPE).build();
     }
 
 
