@@ -1,5 +1,7 @@
 package ch.newsriver.beamer.servlet.v2;
 
+import ch.newsriver.data.user.User;
+import ch.newsriver.data.user.UserFactory;
 import ch.newsriver.data.user.token.TokenBase;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
@@ -116,6 +118,11 @@ public class RestAPIPublishers {
             return Response.serverError().entity("Invalid Token").build();
         }
 
+        User user = UserFactory.getInstance().getUser(token.getUserId());
+        if (user == null || user.getRole() != User.Role.ADMIN) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
+        }
+
 
         WebSite webSite = WebSiteFactory.getInstance().getWebsite(hostname);
 
@@ -145,8 +152,10 @@ public class RestAPIPublishers {
             return Response.serverError().entity("Invalid Token").build();
         }
 
-        //TODO: here verify that user has publisher edit grants
-
+        User user = UserFactory.getInstance().getUser(token.getUserId());
+        if (user == null || user.getRole() != User.Role.ADMIN) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
+        }
 
         WebSite originalWebSite = WebSiteFactory.getInstance().getWebsite(hostname);
 
@@ -162,7 +171,7 @@ public class RestAPIPublishers {
             return Response.serverError().entity("Path id (hostname) and the posted Publisher hostname must be the same.").build();
         }
 
-        //WebSiteFactory.getInstance().updateWebsite(originalWebSite);
+        WebSiteFactory.getInstance().updateWebsite(originalWebSite);
 
         return Response.ok(originalWebSite, MediaType.APPLICATION_JSON_TYPE).build();
     }
