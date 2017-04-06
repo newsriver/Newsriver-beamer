@@ -223,8 +223,8 @@ public class RestAPIHandler {
             return response;
         }
 
-        UserFactory userFactory = new UserFactory();
-        User user = userFactory.getUser(token.getUserId());
+
+        User user = UserFactory.getInstance().getUser(token.getUserId());
 
         if (user == null) {
             response.setError("Unable to fetch user");

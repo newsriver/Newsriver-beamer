@@ -228,8 +228,8 @@ public class RestAPIHandler {
             return Response.serverError().entity("Invalid token").build();
         }
 
-        UserFactory userFactory = new UserFactory();
-        User user = userFactory.getUser(token.getUserId());
+
+        User user = UserFactory.getInstance().getUser(token.getUserId());
 
         if (user == null) {
             return Response.serverError().entity("Unable to fetch user").build();
