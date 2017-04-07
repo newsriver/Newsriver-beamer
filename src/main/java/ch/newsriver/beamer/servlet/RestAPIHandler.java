@@ -155,7 +155,7 @@ public class RestAPIHandler {
 
     @OPTIONS
     @Path("/newsriver")
-    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @Produces(MediaType.TEXT_HTML)
     @Consumes(MediaType.APPLICATION_JSON)
     public String options(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
 

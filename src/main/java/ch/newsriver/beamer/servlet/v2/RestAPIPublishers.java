@@ -72,7 +72,7 @@ public class RestAPIPublishers {
 
     @OPTIONS
     @Path("/search")
-    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @Produces(MediaType.TEXT_HTML)
     public String searchOp(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");
@@ -85,7 +85,7 @@ public class RestAPIPublishers {
 
     @OPTIONS
     @Path("{id}")
-    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @Produces(MediaType.TEXT_HTML)
     public String getPublisherOp(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");

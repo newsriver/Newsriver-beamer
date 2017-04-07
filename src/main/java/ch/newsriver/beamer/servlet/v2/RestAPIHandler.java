@@ -240,7 +240,7 @@ public class RestAPIHandler {
 
     @OPTIONS
     @Path("/user/verify")
-    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @Produces(MediaType.TEXT_HTML)
     public String verifyOp(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");
