@@ -36,7 +36,7 @@ import java.util.List;
 public class RestAPIPublishers {
 
 
-    private static final Logger log = LogManager.getLogger(ch.newsriver.beamer.servlet.v2.RestAPIHandler.class);
+    private static final Logger log = LogManager.getLogger(RestAPIPublishers.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
 
