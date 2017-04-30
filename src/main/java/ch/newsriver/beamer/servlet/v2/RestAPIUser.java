@@ -1,6 +1,8 @@
 package ch.newsriver.beamer.servlet.v2;
 
 import ch.newsriver.dao.JDBCPoolUtil;
+import ch.newsriver.data.analytics.AnalyticsFactory;
+import ch.newsriver.data.analytics.UserUsage;
 import ch.newsriver.data.content.Article;
 import ch.newsriver.data.user.User;
 import ch.newsriver.data.user.UserFactory;
@@ -33,6 +35,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Period;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -233,6 +236,45 @@ public class RestAPIUser {
     @Path("/card")
     @Produces(MediaType.TEXT_HTML)
     public String cardOp(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+        return "ok";
+    }
+
+
+    @GET
+    @Path("/usage")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    public Response usage(@Context HttpServletResponse servlerResponse, @HeaderParam("Authorization") String tokenStr) {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+        if (tokenStr == null) {
+            return Response.serverError().entity("Authorization token missing").build();
+        }
+
+        TokenFactory tokenFactory = new TokenFactory();
+        TokenBase token = tokenFactory.verifyToken(tokenStr);
+
+        if (token == null) {
+            return Response.serverError().entity("Invalid token").build();
+        }
+
+        UserUsage usage = AnalyticsFactory.getInstance().getUsage(token.getUserId(), Period.ofDays(30));
+
+
+        return Response.ok(usage, MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
+    @OPTIONS
+    @Path("/usage")
+    @Produces(MediaType.TEXT_HTML)
+    public String usageOp(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");
         servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
