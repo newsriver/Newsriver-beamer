@@ -32,6 +32,7 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -107,6 +108,8 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
             this.localES.setLocalTTL("newsriver", "5m");
         }
 
+
+        BeamerMain.addCheck("Incoming articles", ChronoUnit.MINUTES, -1, 0);
     }
 
     public void stop() {
@@ -131,7 +134,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
                         try {
                             final Article article = mapper.readValue(record.value(), Article.class);
-
+                            BeamerMain.addMetric("Incoming articles", 1, ChronoUnit.MINUTES);
                             String urlHash = "";
                             try {
                                 MessageDigest digest = MessageDigest.getInstance("SHA-512");

@@ -47,7 +47,7 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
         new BeamerMain(args);
     }
 
-    static public HashMap<String, SortedMap<Long, Long>> getMetric() {
+    static public HashMap<Metric, SortedMap<Long, Long>> getMetric() {
         return metrics;
     }
 
