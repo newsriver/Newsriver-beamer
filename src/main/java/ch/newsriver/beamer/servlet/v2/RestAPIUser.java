@@ -229,6 +229,8 @@ public class RestAPIUser {
             return Response.serverError().entity("Unable to add credit card").build();
         }
 
+        UserFactory.getInstance().setSubscription(token.getUserId(), User.Subscription.BUSINESS);
+
         return Response.ok(user, MediaType.APPLICATION_JSON_TYPE).build();
     }
 
