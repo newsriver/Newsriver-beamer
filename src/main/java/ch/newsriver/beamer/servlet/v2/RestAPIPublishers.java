@@ -1,8 +1,6 @@
 package ch.newsriver.beamer.servlet.v2;
 
 import ch.newsriver.data.user.User;
-import ch.newsriver.data.user.UserFactory;
-import ch.newsriver.data.user.token.TokenBase;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
 import ch.newsriver.data.website.WebSiteFactory;
@@ -51,17 +49,14 @@ public class RestAPIPublishers {
         servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
 
 
-        if (tokenStr == null) {
-            return Response.serverError().entity("Authorization token missing").build();
+        User user;
+        try {
+            TokenFactory tokenFactory = new TokenFactory();
+            user = tokenFactory.getTokenUser(tokenStr);
+        } catch (TokenFactory.TokenVerificationException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
-
-
-        TokenFactory tokenFactory = new TokenFactory();
-        TokenBase token = tokenFactory.verifyToken(tokenStr);
-
-        if (token == null) {
-            return Response.serverError().entity("Invalid Token").build();
-        }
+        //verify user limit exceeded
 
         String queryStr = "hostName:\"*" + query + "\"* AND name:*" + query + "*";
 
@@ -106,19 +101,16 @@ public class RestAPIPublishers {
         servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
 
 
-        if (tokenStr == null) {
-            return Response.serverError().entity("Authorization token missing").build();
+        User user;
+        try {
+            TokenFactory tokenFactory = new TokenFactory();
+            user = tokenFactory.getTokenUser(tokenStr);
+        } catch (TokenFactory.TokenVerificationException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
+        //verify user limit exceeded
 
 
-        TokenFactory tokenFactory = new TokenFactory();
-        TokenBase token = tokenFactory.verifyToken(tokenStr);
-
-        if (token == null) {
-            return Response.serverError().entity("Invalid Token").build();
-        }
-
-        User user = UserFactory.getInstance().getUser(token.getUserId());
         if (user == null || user.getRole() != User.Role.ADMIN) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
         }
@@ -141,18 +133,15 @@ public class RestAPIPublishers {
         servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
 
 
-        if (tokenStr == null) {
-            return Response.serverError().entity("Authorization token missing").build();
+        User user;
+        try {
+            TokenFactory tokenFactory = new TokenFactory();
+            user = tokenFactory.getTokenUser(tokenStr);
+        } catch (TokenFactory.TokenVerificationException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
+        //verify user limit exceeded
 
-
-        TokenFactory tokenFactory = new TokenFactory();
-        TokenBase token = tokenFactory.verifyToken(tokenStr);
-        if (token == null) {
-            return Response.serverError().entity("Invalid Token").build();
-        }
-
-        User user = UserFactory.getInstance().getUser(token.getUserId());
         if (user == null || user.getRole() != User.Role.ADMIN) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
         }

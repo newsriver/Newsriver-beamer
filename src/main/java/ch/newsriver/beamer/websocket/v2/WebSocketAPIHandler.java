@@ -7,7 +7,7 @@ import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.content.ArticleRequest;
 import ch.newsriver.data.content.HighlightedArticle;
-import ch.newsriver.data.user.token.TokenBase;
+import ch.newsriver.data.user.User;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +48,8 @@ public class WebSocketAPIHandler {
         try {
             ArticleRequest placeholder = new ArticleRequest();
 
+            //Remove this part once we enforce valid tokens
+            //-------------------------------------------------------------------------
             if (!session.getUserProperties().containsKey("token")) {
                 //session.getBasicRemote().sendText("Authorization token missing!");
                 //session.close();
@@ -56,9 +58,10 @@ public class WebSocketAPIHandler {
                 //For some transition time we acccept requrest without token.
                 session.getUserProperties().put("userId", -1l);
             }
+            //-------------------------------------------------------------------------
 
             if (!session.getUserProperties().containsKey("userId")) {
-                session.getBasicRemote().sendText("Invalid authorization token");
+                session.getBasicRemote().sendText((String) session.getUserProperties().get("error"));
                 session.close();
                 return;
             }
@@ -125,15 +128,19 @@ public class WebSocketAPIHandler {
                 tokenStr = request.getParameterMap().get("token").get(0);
             }
 
-            if (tokenStr != null) {
-                sec.getUserProperties().put("token", tokenStr);
-
+            User user;
+            try {
                 TokenFactory tokenFactory = new TokenFactory();
-                TokenBase token = tokenFactory.verifyToken(tokenStr);
-                if (token != null) {
-                    sec.getUserProperties().put("userId", token.getUserId());
-                }
+                user = tokenFactory.getTokenUser(tokenStr);
+
+                sec.getUserProperties().put("token", tokenStr);
+                sec.getUserProperties().put("userId", user.getId());
+
+            } catch (TokenFactory.TokenVerificationException e) {
+
+                sec.getUserProperties().put("error", e.getMessage());
             }
+
 
         }
     }

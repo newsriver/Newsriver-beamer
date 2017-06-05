@@ -19,7 +19,7 @@ import java.io.IOException;
  * Created by eliapalme on 20/03/16.
  */
 
-
+@Deprecated
 @ServerEndpoint("/lookupWebSocket")
 public class LookupWebSocketHandler {
 

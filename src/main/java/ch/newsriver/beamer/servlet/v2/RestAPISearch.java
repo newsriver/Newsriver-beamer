@@ -6,7 +6,7 @@ import ch.newsriver.data.content.Article;
 import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.content.ArticleRequest;
 import ch.newsriver.data.content.HighlightedArticle;
-import ch.newsriver.data.user.token.TokenBase;
+import ch.newsriver.data.user.User;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -57,21 +57,19 @@ public class RestAPISearch {
         servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
 
 
-        if (tokenStr == null) {
-            return Response.serverError().entity("Authorization token missing").build();
-        }
         if (limit > 100) {
             return Response.serverError().entity("Maximum articles limit is 100, please decrease your limit").build();
         }
 
 
-        TokenFactory tokenFactory = new TokenFactory();
-        TokenBase token = tokenFactory.verifyToken(tokenStr);
-
-        if (token == null) {
-            return Response.serverError().entity("Invalid Token").build();
+        User user;
+        try {
+            TokenFactory tokenFactory = new TokenFactory();
+            user = tokenFactory.getTokenUser(tokenStr);
+        } catch (TokenFactory.TokenVerificationException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
-
+        //verify user limit exceeded
 
         ArticleRequest searchRequest = new ArticleRequest();
         searchRequest.setLimit(limit);
@@ -82,9 +80,9 @@ public class RestAPISearch {
         List<HighlightedArticle> result = ArticleFactory.getInstance().searchArticles(searchRequest);
 
         try {
-            UsageLogger.logQuery(token.getUserId(), searchRequest.getQuery(), result.size(), "/v2/search");
-            UsageLogger.logDataPoint(token.getUserId(), result.size(), "/v2/search");
-            UsageLogger.logAPIcall(token.getUserId(), "/v2/search");
+            UsageLogger.logQuery(user.getId(), searchRequest.getQuery(), result.size(), "/v2/search");
+            UsageLogger.logDataPoint(user.getId(), result.size(), "/v2/search");
+            UsageLogger.logAPIcall(user.getId(), "/v2/search");
         } catch (Exception e) {
             log.fatal("unable to log usage", e);
         }

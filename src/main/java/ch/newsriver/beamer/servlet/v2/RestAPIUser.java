@@ -155,22 +155,13 @@ public class RestAPIUser {
         servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
         servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
 
-        if (tokenStr == null) {
-            return Response.serverError().entity("Authorization token missing").build();
-        }
+        User user;
+        try {
+            TokenFactory tokenFactory = new TokenFactory();
+            user = tokenFactory.getTokenUser(tokenStr);
 
-        TokenFactory tokenFactory = new TokenFactory();
-        TokenBase token = tokenFactory.verifyToken(tokenStr);
-
-        if (token == null) {
-            return Response.serverError().entity("Invalid token").build();
-        }
-
-
-        User user = UserFactory.getInstance().getUser(token.getUserId());
-
-        if (user == null) {
-            return Response.serverError().entity("Unable to fetch user").build();
+        } catch (TokenFactory.TokenVerificationException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
 
         return Response.ok(user, MediaType.APPLICATION_JSON_TYPE).build();
@@ -198,22 +189,13 @@ public class RestAPIUser {
         servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
 
 
-        if (tokenStr == null) {
-            return Response.serverError().entity("Authorization token missing").build();
-        }
+        User user;
+        try {
+            TokenFactory tokenFactory = new TokenFactory();
+            user = tokenFactory.getTokenUser(tokenStr);
 
-        TokenFactory tokenFactory = new TokenFactory();
-        TokenBase token = tokenFactory.verifyToken(tokenStr);
-
-        if (token == null) {
-            return Response.serverError().entity("Invalid token").build();
-        }
-
-
-        User user = UserFactory.getInstance().getUser(token.getUserId());
-
-        if (user == null) {
-            return Response.serverError().entity("Unable to fetch user").build();
+        } catch (TokenFactory.TokenVerificationException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
 
 
@@ -229,7 +211,7 @@ public class RestAPIUser {
             return Response.serverError().entity("Unable to add credit card").build();
         }
 
-        UserFactory.getInstance().setSubscription(token.getUserId(), User.Subscription.BUSINESS);
+        UserFactory.getInstance().setSubscription(user.getId(), User.Subscription.BUSINESS);
 
         return Response.ok(user, MediaType.APPLICATION_JSON_TYPE).build();
     }

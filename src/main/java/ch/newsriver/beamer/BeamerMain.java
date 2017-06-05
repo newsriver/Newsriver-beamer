@@ -78,10 +78,10 @@ public class BeamerMain extends MainWithPoolExecutorOptions {
         try {
             // Add javax.websocket support
             ServerContainer container = WebSocketServerContainerInitializer.configureContext(context);
-            // Add echo endpoint to server container
-            container.addEndpoint(StreemWebSocketHandler.class);
-            container.addEndpoint(LookupWebSocketHandler.class);
             container.addEndpoint(WebSocketAPIHandler.class);
+            //@Deprecated we should implement it properly and consider to offer it as an API
+            //container.addEndpoint(LookupWebSocketHandler.class);
+
         } catch (ServletException e) {
 
         } catch (DeploymentException e) {
