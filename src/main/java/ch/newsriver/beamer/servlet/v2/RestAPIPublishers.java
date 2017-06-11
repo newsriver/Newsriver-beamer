@@ -1,6 +1,7 @@
 package ch.newsriver.beamer.servlet.v2;
 
 import ch.newsriver.data.user.User;
+import ch.newsriver.data.user.UserFactory;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
 import ch.newsriver.data.website.WebSiteFactory;
@@ -25,6 +26,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.List;
+
+import static ch.newsriver.data.user.User.Subscription.FREE;
+import static ch.newsriver.data.user.User.Usage.EXCEEDED;
 
 /**
  * Created by eliapalme on 09.01.17.
@@ -55,8 +59,14 @@ public class RestAPIPublishers {
             user = tokenFactory.getTokenUser(tokenStr);
         } catch (TokenFactory.TokenVerificationException e) {
             return Response.serverError().entity(e.getMessage()).build();
+        } catch (UserFactory.UserNotFountException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
-        //verify user limit exceeded
+
+
+        if (user != null && user.getUsage() == EXCEEDED && user.getSubscription() == FREE) {
+            return Response.status(429).entity("API Usage Limit Exceeded").build();
+        }
 
         String queryStr = "hostName:\"*" + query + "\"* AND name:*" + query + "*";
 
@@ -107,8 +117,14 @@ public class RestAPIPublishers {
             user = tokenFactory.getTokenUser(tokenStr);
         } catch (TokenFactory.TokenVerificationException e) {
             return Response.serverError().entity(e.getMessage()).build();
+        } catch (UserFactory.UserNotFountException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
-        //verify user limit exceeded
+
+
+        if (user != null && user.getUsage() == EXCEEDED && user.getSubscription() == FREE) {
+            return Response.status(429).entity("API Usage Limit Exceeded").build();
+        }
 
 
         if (user == null || user.getRole() != User.Role.ADMIN) {
@@ -139,8 +155,14 @@ public class RestAPIPublishers {
             user = tokenFactory.getTokenUser(tokenStr);
         } catch (TokenFactory.TokenVerificationException e) {
             return Response.serverError().entity(e.getMessage()).build();
+        } catch (UserFactory.UserNotFountException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
-        //verify user limit exceeded
+
+
+        if (user != null && user.getUsage() == EXCEEDED && user.getSubscription() == FREE) {
+            return Response.status(429).entity("API Usage Limit Exceeded").build();
+        }
 
         if (user == null || user.getRole() != User.Role.ADMIN) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();

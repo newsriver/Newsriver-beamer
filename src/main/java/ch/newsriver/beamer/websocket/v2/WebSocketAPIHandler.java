@@ -8,6 +8,7 @@ import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.content.ArticleRequest;
 import ch.newsriver.data.content.HighlightedArticle;
 import ch.newsriver.data.user.User;
+import ch.newsriver.data.user.UserFactory;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,6 +28,9 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import java.io.IOException;
 import java.util.List;
+
+import static ch.newsriver.data.user.User.Subscription.FREE;
+import static ch.newsriver.data.user.User.Usage.EXCEEDED;
 
 /**
  * Created by eliapalme on 20/03/16.
@@ -48,20 +52,15 @@ public class WebSocketAPIHandler {
         try {
             ArticleRequest placeholder = new ArticleRequest();
 
-            //Remove this part once we enforce valid tokens
-            //-------------------------------------------------------------------------
-            if (!session.getUserProperties().containsKey("token")) {
-                //session.getBasicRemote().sendText("Authorization token missing!");
-                //session.close();
-                //return;
-                //TODO: uncomment and remove the following line
-                //For some transition time we acccept requrest without token.
-                session.getUserProperties().put("userId", -1l);
-            }
-            //-------------------------------------------------------------------------
 
             if (!session.getUserProperties().containsKey("userId")) {
                 session.getBasicRemote().sendText((String) session.getUserProperties().get("error"));
+                session.close();
+                return;
+            }
+            User user = (User) session.getUserProperties().get("user");
+            if (user != null && user.getUsage() == EXCEEDED && user.getSubscription() == FREE) {
+                session.getBasicRemote().sendText("API Usage Limit Exceeded");
                 session.close();
                 return;
             }
@@ -135,9 +134,11 @@ public class WebSocketAPIHandler {
 
                 sec.getUserProperties().put("token", tokenStr);
                 sec.getUserProperties().put("userId", user.getId());
+                sec.getUserProperties().put("user", user);
 
             } catch (TokenFactory.TokenVerificationException e) {
-
+                sec.getUserProperties().put("error", e.getMessage());
+            } catch (UserFactory.UserNotFountException e) {
                 sec.getUserProperties().put("error", e.getMessage());
             }
 

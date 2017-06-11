@@ -7,6 +7,7 @@ import ch.newsriver.data.content.ArticleFactory;
 import ch.newsriver.data.content.ArticleRequest;
 import ch.newsriver.data.content.HighlightedArticle;
 import ch.newsriver.data.user.User;
+import ch.newsriver.data.user.UserFactory;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -29,6 +30,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
+
+import static ch.newsriver.data.user.User.Subscription.FREE;
+import static ch.newsriver.data.user.User.Usage.EXCEEDED;
 
 /**
  * Created by eliapalme on 06/05/16.
@@ -68,8 +72,14 @@ public class RestAPISearch {
             user = tokenFactory.getTokenUser(tokenStr);
         } catch (TokenFactory.TokenVerificationException e) {
             return Response.serverError().entity(e.getMessage()).build();
+        } catch (UserFactory.UserNotFountException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
-        //verify user limit exceeded
+
+
+        if (user != null && user.getUsage() == EXCEEDED && user.getSubscription() == FREE) {
+            return Response.status(429).entity("API Usage Limit Exceeded").build();
+        }
 
         ArticleRequest searchRequest = new ArticleRequest();
         searchRequest.setLimit(limit);

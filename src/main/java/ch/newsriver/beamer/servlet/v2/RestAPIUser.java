@@ -162,6 +162,8 @@ public class RestAPIUser {
 
         } catch (TokenFactory.TokenVerificationException e) {
             return Response.serverError().entity(e.getMessage()).build();
+        } catch (UserFactory.UserNotFountException e) {
+            return Response.serverError().entity(e.getMessage()).build();
         }
 
         return Response.ok(user, MediaType.APPLICATION_JSON_TYPE).build();
@@ -195,6 +197,8 @@ public class RestAPIUser {
             user = tokenFactory.getTokenUser(tokenStr);
 
         } catch (TokenFactory.TokenVerificationException e) {
+            return Response.serverError().entity(e.getMessage()).build();
+        } catch (UserFactory.UserNotFountException e) {
             return Response.serverError().entity(e.getMessage()).build();
         }
 
