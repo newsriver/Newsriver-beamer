@@ -68,9 +68,7 @@ public class RestAPIPublishers {
             return Response.status(429).entity("API Usage Limit Exceeded").build();
         }
 
-        String queryStr = "hostName:\"*" + query + "\"* AND name:*" + query + "*";
-
-        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithQuery(queryStr, 20);
+        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithQuery(query, "domainName", 20);
 
         return Response.ok(webSites, MediaType.APPLICATION_JSON_TYPE).build();
     }
