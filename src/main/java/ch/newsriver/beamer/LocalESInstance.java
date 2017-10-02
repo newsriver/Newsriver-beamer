@@ -12,8 +12,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
 
-import java.io.IOException;
-
 /**
  * Created by eliapalme on 06.01.17.
  */
@@ -80,7 +78,7 @@ public class LocalESInstance {
         mappingsForIndex.forEach(item -> {
             try {
                 indexBuilder.addMapping(item.key, item.value.sourceAsMap());
-            } catch (IOException e) {
+            } catch (Exception e) {
                 logger.warn("Could not add the mapping for {} from the index {}", item.key, copyFrom, e);
             }
         });
