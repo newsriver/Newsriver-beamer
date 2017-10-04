@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -13,8 +14,6 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
 
 import java.util.Map;
-
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_CREATION_DATE;
 
 
 /**
@@ -41,9 +40,11 @@ public class LocalESInstance {
 
     public boolean replicateIndex(String name, Client remote) {
 
-        CreateIndexRequestBuilder indexBuilder = this.client.admin().indices().prepareCreate("newsriver");
+        /*CreateIndexRequestBuilder indexBuilder = this.client.admin().indices().prepareCreate("newsriver");
         initializeSettings(remote, name, indexBuilder);
         initializeMappings(remote, name, indexBuilder);
+
+
 
 
         try {
@@ -51,7 +52,33 @@ public class LocalESInstance {
             return true;
         } catch (Exception e) {
             return false;
-        }
+        }*/
+        remote.admin().indices().putTemplate(
+                new PutIndexTemplateRequest("newsriver-timeseries").source("{\n" +
+                        "  \"template\": \"newsriver*\",\n" +
+                        "  \"settings\": {\n" +
+                        "    \"number_of_shards\": 1\n" +
+                        "  },\n" +
+                        "  \"mappings\": {\n" +
+                        "    \"article\": {\n" +
+                        "      \"properties\": {\n" +
+                        "        \"url\": {\n" +
+                        "          \"type\": \"string\",\n" +
+                        "          \"analyzer\": \"url_analyzer\"\n" +
+                        "        },\n" +
+                        "        \"structuredText\": {\n" +
+                        "          \"type\": \"text\",\n" +
+                        "          \"index\": \"no\"\n" +
+                        "        },\n" +
+                        "        \"website\": {\n" +
+                        "          \"type\": \"object\"\n" +
+                        "        }\n" +
+                        "      }\n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}")
+        );
+        return true;
 
     }
 

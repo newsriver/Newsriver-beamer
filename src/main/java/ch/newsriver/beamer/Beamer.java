@@ -20,6 +20,9 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.client.IndicesAdminClient;
 import org.elasticsearch.node.NodeValidationException;
 
 import javax.websocket.Session;
@@ -34,6 +37,7 @@ import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -122,7 +126,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
     public void run() {
 
         while (run) {
-
+            LinkedHashSet<String> esIndexes = new LinkedHashSet<>();
             try {
                 this.waitFreeBatchExecutors(this.batchSize);
                 ConsumerRecords<String, String> records = consumer.poll(5000);
@@ -141,8 +145,19 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                             } catch (NoSuchAlgorithmException e) {
                                 logger.fatal("Unable to compute URL hash", e);
                             }
+                            String indexName = "newsriver-" + (System.currentTimeMillis() / 1000 / 300);
+                            esIndexes.add(indexName);
+                            ArticleFactory.getInstance().saveArticle(article, urlHash, indexName, this.localES.getClient());
+                            while (esIndexes.size() > 3) {
+                                String indexToDelete = esIndexes.iterator().next();
+                                IndicesAdminClient adminClient = this.localES.getClient().admin().indices();
+                                DeleteIndexResponse delete = adminClient.delete(new DeleteIndexRequest(indexToDelete)).actionGet();
+                                if (!delete.isAcknowledged()) {
+                                    logger.error("Index {} wasn't deleted", indexToDelete);
+                                }
+                                esIndexes.remove(indexToDelete);
+                            }
 
-                            ArticleFactory.getInstance().saveArticle(article, urlHash, this.localES.getClient());
 
                             //TODO: implement delayd comsumption in Stream class and replace this class with a stream in the Main class of the Beamer
                             //Delaying the consumption of the records. This is done to give time to Elasticsearch to index the new document
