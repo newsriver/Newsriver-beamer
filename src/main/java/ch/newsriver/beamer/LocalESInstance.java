@@ -12,6 +12,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
 
+import java.util.Map;
+
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_CREATION_DATE;
+
+
 /**
  * Created by eliapalme on 06.01.17.
  */
@@ -40,6 +45,7 @@ public class LocalESInstance {
         initializeSettings(remote, name, indexBuilder);
         initializeMappings(remote, name, indexBuilder);
 
+
         try {
             indexBuilder.execute().actionGet();
             return true;
@@ -52,7 +58,7 @@ public class LocalESInstance {
     public void setLocalTTL(String name, String ttl) {
 
         //Updating local newsriver TTL
-        this.client.admin().indices().preparePutMapping(name)
+        /*this.client.admin().indices().preparePutMapping(name)
                 .setType("article")
                 .setSource("{\n" +
                         "    \"_ttl\": {\n" +
@@ -60,7 +66,7 @@ public class LocalESInstance {
                         "      \"default\": \"" + ttl + "\"\n" +
                         "    }}")
                 .execute()
-                .actionGet();
+                .actionGet();*/
     }
 
 
@@ -77,7 +83,9 @@ public class LocalESInstance {
         ImmutableOpenMap<String, MappingMetaData> mappingsForIndex = getMappingsResponse.getMappings().get(copyFrom);
         mappingsForIndex.forEach(item -> {
             try {
-                indexBuilder.addMapping(item.key, item.value.sourceAsMap());
+                Map<String, Object> map = item.value.sourceAsMap();
+                map.remove("_ttl");
+                indexBuilder.addMapping(item.key, map);
             } catch (Exception e) {
                 logger.warn("Could not add the mapping for {} from the index {}", item.key, copyFrom, e);
             }
@@ -90,8 +98,19 @@ public class LocalESInstance {
 
         GetSettingsResponse getSettingsResponse =
                 client.admin().indices().prepareGetSettings(copyFrom).execute().actionGet();
+
+
         ImmutableOpenMap<String, Settings> indexToSettings = getSettingsResponse.getIndexToSettings();
-        indexBuilder.setSettings(indexToSettings.get(copyFrom));
+
+        Settings.Builder settingsBuilder = Settings.builder();
+        settingsBuilder = settingsBuilder.put(indexToSettings.get(copyFrom));
+        settingsBuilder.remove("index.creation_date");
+        settingsBuilder.remove("index.uuid");
+        settingsBuilder.remove("index.version.created");
+        settingsBuilder.remove("index.version.upgraded");
+
+
+        indexBuilder.setSettings(settingsBuilder.build());
 
 
     }
