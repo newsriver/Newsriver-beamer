@@ -125,8 +125,26 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
 
     public void run() {
 
+        LinkedHashSet<String> esIndexes = new LinkedHashSet<>();
         while (run) {
-            LinkedHashSet<String> esIndexes = new LinkedHashSet<>();
+            //Computing new index name for local storage
+            String indexName = "newsriver-" + (System.currentTimeMillis() / 1000 / 300);
+            try {
+                esIndexes.add(indexName);
+                //cleaning old unused indexes
+                while (esIndexes.size() > 3) {
+                    String indexToDelete = esIndexes.iterator().next();
+                    IndicesAdminClient adminClient = this.localES.getClient().admin().indices();
+                    DeleteIndexResponse delete = adminClient.delete(new DeleteIndexRequest(indexToDelete)).actionGet();
+                    if (!delete.isAcknowledged()) {
+                        logger.error("Index {} wasn't deleted", indexToDelete);
+                    }
+                    esIndexes.remove(indexToDelete);
+                }
+            } catch (Exception e) {
+                logger.error("Unable to clean temporary ES indexes");
+            }
+
             try {
                 this.waitFreeBatchExecutors(this.batchSize);
                 ConsumerRecords<String, String> records = consumer.poll(5000);
@@ -145,19 +163,7 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                             } catch (NoSuchAlgorithmException e) {
                                 logger.fatal("Unable to compute URL hash", e);
                             }
-                            String indexName = "newsriver-" + (System.currentTimeMillis() / 1000 / 300);
-                            esIndexes.add(indexName);
                             ArticleFactory.getInstance().saveArticle(article, urlHash, indexName, this.localES.getClient());
-                            while (esIndexes.size() > 3) {
-                                String indexToDelete = esIndexes.iterator().next();
-                                IndicesAdminClient adminClient = this.localES.getClient().admin().indices();
-                                DeleteIndexResponse delete = adminClient.delete(new DeleteIndexRequest(indexToDelete)).actionGet();
-                                if (!delete.isAcknowledged()) {
-                                    logger.error("Index {} wasn't deleted", indexToDelete);
-                                }
-                                esIndexes.remove(indexToDelete);
-                            }
-
 
                             //TODO: implement delayd comsumption in Stream class and replace this class with a stream in the Main class of the Beamer
                             //Delaying the consumption of the records. This is done to give time to Elasticsearch to index the new document
