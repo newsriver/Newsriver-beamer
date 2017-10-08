@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.client.IndicesAdminClient;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.node.NodeValidationException;
 
 import javax.websocket.Session;
@@ -135,9 +136,13 @@ public class Beamer extends BatchInterruptibleWithinExecutorPool implements Runn
                 while (esIndexes.size() > 3) {
                     String indexToDelete = esIndexes.iterator().next();
                     IndicesAdminClient adminClient = this.localES.getClient().admin().indices();
-                    DeleteIndexResponse delete = adminClient.delete(new DeleteIndexRequest(indexToDelete)).actionGet();
-                    if (!delete.isAcknowledged()) {
-                        logger.error("Index {} wasn't deleted", indexToDelete);
+                    try {
+                        DeleteIndexResponse delete = adminClient.delete(new DeleteIndexRequest(indexToDelete)).actionGet();
+                        if (!delete.isAcknowledged()) {
+                            logger.error("Index {} wasn't deleted", indexToDelete);
+                        }
+                    } catch (IndexNotFoundException e) {
+                        //ignore this, the index has may never been created
                     }
                     esIndexes.remove(indexToDelete);
                 }
