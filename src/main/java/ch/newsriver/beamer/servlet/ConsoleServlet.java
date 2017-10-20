@@ -61,7 +61,7 @@ public class ConsoleServlet {
 
 
         boolean status = true;
-        for (Main.Metric metric : BeamerMain.getChecks().keySet()) {
+        /*for (Main.Metric metric : BeamerMain.getChecks().keySet()) {
             Long avg = avgs.get(metric);
             if (avg == null) {
                 status = false;
@@ -72,8 +72,8 @@ public class ConsoleServlet {
                 status = false;
                 break;
             }
-        }
-        
+        }*/
+
 
         body.append("</table>");
         body.append("</body></html>");
