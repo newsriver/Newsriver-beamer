@@ -61,7 +61,7 @@ public class ConsoleServlet {
 
 
         boolean status = true;
-        /*for (Main.Metric metric : BeamerMain.getChecks().keySet()) {
+        for (Main.Metric metric : BeamerMain.getChecks().keySet()) {
             Long avg = avgs.get(metric);
             if (avg == null) {
                 status = false;
@@ -72,16 +72,22 @@ public class ConsoleServlet {
                 status = false;
                 break;
             }
-        }*/
+        }
 
 
         body.append("</table>");
-        body.append("</body></html>");
         if (status) {
-            return Response.ok(body.toString(), MediaType.TEXT_HTML).build();
+            body.append("<h1>Pipeline status: OK</h1>");
         } else {
-            return Response.serverError().entity(body.toString()).build();
+            body.append("<h1 style='color:red'>Pipeline status: Unstable</h1>");
         }
+        body.append("</body></html>");
+        //Since the search API is running on beamer we cannot kill the beamer if the pipeline stauts is not ok
+        //if (status) {
+        return Response.ok(body.toString(), MediaType.TEXT_HTML).build();
+        //} else {
+        //    return Response.serverError().entity(body.toString()).build();
+        //}
     }
 
 }
