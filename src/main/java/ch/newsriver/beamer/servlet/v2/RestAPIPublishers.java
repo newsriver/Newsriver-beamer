@@ -46,7 +46,7 @@ public class RestAPIPublishers {
     @Path("/search")
     @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     @JsonView(WebSite.JSONViews.API.class)
-    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String query) throws JsonProcessingException {
+    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String name) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
         servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
@@ -68,7 +68,7 @@ public class RestAPIPublishers {
             return Response.status(429).entity("API Usage Limit Exceeded").build();
         }
 
-        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithQuery(query, "domainName", 20);
+        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithName(name);
 
         return Response.ok(webSites, MediaType.APPLICATION_JSON_TYPE).build();
     }
