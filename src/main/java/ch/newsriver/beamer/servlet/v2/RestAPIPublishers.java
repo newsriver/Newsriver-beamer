@@ -5,6 +5,7 @@ import ch.newsriver.data.user.UserFactory;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
 import ch.newsriver.data.website.WebSiteFactory;
+import ch.newsriver.util.url.URLUtils;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,7 +47,7 @@ public class RestAPIPublishers {
     @Path("/search")
     @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     @JsonView(WebSite.JSONViews.API.class)
-    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String name) throws JsonProcessingException {
+    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String name,@QueryParam("owner") String owner) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
         servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
@@ -67,8 +68,11 @@ public class RestAPIPublishers {
         if (user != null && user.getUsage() == EXCEEDED && user.getSubscription() == FREE) {
             return Response.status(429).entity("API Usage Limit Exceeded").build();
         }
-
-        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithName(name);
+        Long ownerId = null;
+        if(owner.equalsIgnoreCase("me")){
+            ownerId = user.getId();
+        }
+        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithName(name,ownerId);
 
         return Response.ok(webSites, MediaType.APPLICATION_JSON_TYPE).build();
     }
@@ -132,6 +136,11 @@ public class RestAPIPublishers {
 
         WebSite webSite = WebSiteFactory.getInstance().getWebsite(hostname);
 
+        //TODO: introduce a new role that can access publishers with no owners
+        if(webSite.getOwnerId()== null || webSite.getOwnerId()!= user.getId()){
+            return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
+        }
+
         return Response.ok(webSite, MediaType.APPLICATION_JSON_TYPE).build();
     }
 
@@ -168,6 +177,11 @@ public class RestAPIPublishers {
 
         WebSite originalWebSite = WebSiteFactory.getInstance().getWebsite(hostname);
 
+        if(originalWebSite.getOwnerId()!= null && originalWebSite.getOwnerId()!= user.getId()){
+            return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
+        }
+
+
         //Because the JSON object sent over the API is a subset of the JSON stored in Elastic
         //We need to merge the new version with the full version
         //Also note that we are not de-serialising the publisherJSON because the serialized version is a view of full JSON
@@ -184,6 +198,67 @@ public class RestAPIPublishers {
 
         return Response.ok(originalWebSite, MediaType.APPLICATION_JSON_TYPE).build();
     }
+
+    @OPTIONS
+    @Path("/add/{id}")
+    @Produces(MediaType.TEXT_HTML)
+    public String addPublisherOp(@Context HttpServletResponse servlerResponse) throws JsonProcessingException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST, GET, OPTIONS");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+        return "ok";
+    }
+
+
+    @POST
+    @Path("/add/{id}")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
+    @JsonView(WebSite.JSONViews.API.class)
+    public Response addPublisher(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @PathParam("id") String hostname, String publisherJSON) throws JsonProcessingException, IOException {
+
+        servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST");
+        servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
+        servlerResponse.addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+
+
+        User user;
+        try {
+            TokenFactory tokenFactory = new TokenFactory();
+            user = tokenFactory.getTokenUser(tokenStr);
+        } catch (TokenFactory.TokenVerificationException e) {
+            return Response.serverError().entity(e.getMessage()).build();
+        } catch (UserFactory.UserNotFountException e) {
+            return Response.serverError().entity(e.getMessage()).build();
+        }
+
+
+        if (user != null && user.getUsage() == EXCEEDED && user.getSubscription() == FREE) {
+            return Response.status(429).entity("API Usage Limit Exceeded").build();
+        }
+
+        if (user == null || user.getRole() != User.Role.ADMIN) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
+        }
+
+
+        WebSite newWebsite = mapper.readValue(publisherJSON,WebSite.class);
+        newWebsite.setDomainName(URLUtils.getDomainRoot(newWebsite.getHostName()));
+        newWebsite.setName(newWebsite.getDomainName());
+        newWebsite.setCanonicalURL(newWebsite.getHostName());
+        newWebsite.setOwnerId(user.getId());
+
+        String id = WebSiteFactory.getInstance().addWebsite(newWebsite);
+        if(id==null){
+            return  Response.status(Response.Status.CONFLICT).entity("Unable to add publisher").build();
+        }
+
+        return Response.ok(id, MediaType.APPLICATION_JSON_TYPE).build();
+    }
+
+
+
 
 
 }
