@@ -47,7 +47,7 @@ public class RestAPIPublishers {
     @Path("/search")
     @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     @JsonView(WebSite.JSONViews.API.class)
-    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String name) throws JsonProcessingException {
+    public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String name,@QueryParam("owner") String owner) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
         servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
@@ -68,8 +68,11 @@ public class RestAPIPublishers {
         if (user != null && user.getUsage() == EXCEEDED && user.getSubscription() == FREE) {
             return Response.status(429).entity("API Usage Limit Exceeded").build();
         }
-
-        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithName(name);
+        Long ownerId = null;
+        if(owner.equalsIgnoreCase("me")){
+            ownerId = user.getId();
+        }
+        List<WebSite> webSites = WebSiteFactory.getInstance().searchWebsitesWithName(name,ownerId);
 
         return Response.ok(webSites, MediaType.APPLICATION_JSON_TYPE).build();
     }
@@ -133,6 +136,11 @@ public class RestAPIPublishers {
 
         WebSite webSite = WebSiteFactory.getInstance().getWebsite(hostname);
 
+        //TODO: introduce a new role that can access publishers with no owners
+        if(webSite.getOwnerId()== null || webSite.getOwnerId()!= user.getId()){
+            return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
+        }
+
         return Response.ok(webSite, MediaType.APPLICATION_JSON_TYPE).build();
     }
 
@@ -168,6 +176,11 @@ public class RestAPIPublishers {
         }
 
         WebSite originalWebSite = WebSiteFactory.getInstance().getWebsite(hostname);
+
+        if(originalWebSite.getOwnerId()!= null && originalWebSite.getOwnerId()!= user.getId()){
+            return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
+        }
+
 
         //Because the JSON object sent over the API is a subset of the JSON stored in Elastic
         //We need to merge the new version with the full version
@@ -234,6 +247,7 @@ public class RestAPIPublishers {
         newWebsite.setDomainName(URLUtils.getDomainRoot(newWebsite.getHostName()));
         newWebsite.setName(newWebsite.getDomainName());
         newWebsite.setCanonicalURL(newWebsite.getHostName());
+        newWebsite.setOwnerId(user.getId());
 
         String id = WebSiteFactory.getInstance().addWebsite(newWebsite);
         if(id==null){
