@@ -5,7 +5,6 @@ import ch.newsriver.data.user.UserFactory;
 import ch.newsriver.data.user.token.TokenFactory;
 import ch.newsriver.data.website.WebSite;
 import ch.newsriver.data.website.WebSiteFactory;
-import ch.newsriver.util.url.URLUtils;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +25,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.List;
 
 import static ch.newsriver.data.user.User.Subscription.FREE;
@@ -212,10 +212,10 @@ public class RestAPIPublishers {
 
 
     @POST
-    @Path("/add/{id}")
+    @Path("/add/{url}")
     @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
     @JsonView(WebSite.JSONViews.API.class)
-    public Response addPublisher(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @PathParam("id") String hostname, String publisherJSON) throws JsonProcessingException, IOException {
+    public Response addPublisher(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @PathParam("url") String url, String publisherJSON) throws JsonProcessingException, IOException, URISyntaxException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "POST");
         servlerResponse.addHeader("Access-Control-Allow-Origin", "*");
@@ -243,10 +243,10 @@ public class RestAPIPublishers {
 
 
         WebSite newWebsite = mapper.readValue(publisherJSON,WebSite.class);
-        newWebsite.setDomainName(URLUtils.getDomainRoot(newWebsite.getHostName()));
+        newWebsite.initWebsite(url);
         newWebsite.setName(newWebsite.getDomainName());
-        newWebsite.setCanonicalURL(newWebsite.getHostName());
         newWebsite.setOwnerId(user.getId());
+
 
         String id = WebSiteFactory.getInstance().addWebsite(newWebsite);
         if(id==null){
