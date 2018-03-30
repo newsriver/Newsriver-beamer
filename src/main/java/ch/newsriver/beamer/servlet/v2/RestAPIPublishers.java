@@ -129,15 +129,14 @@ public class RestAPIPublishers {
         }
 
 
-        if (user == null || user.getRole() != User.Role.ADMIN) {
+        if (user == null || (user.getRole() != User.Role.ADMIN && user.getRole() != User.Role.SUBSCRIBER)) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
         }
 
 
         WebSite webSite = WebSiteFactory.getInstance().getWebsite(hostname);
 
-        //TODO: introduce a new role that can access publishers with no owners
-        if(webSite.getOwnerId()== null || webSite.getOwnerId()!= user.getId()){
+        if(user.getRole() != User.Role.ADMIN && (webSite.getOwnerId()== null || webSite.getOwnerId()!= user.getId())){
             return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
         }
 
@@ -171,13 +170,13 @@ public class RestAPIPublishers {
             return Response.status(429).entity("API Usage Limit Exceeded").build();
         }
 
-        if (user == null || user.getRole() != User.Role.ADMIN) {
+        if (user == null || (user.getRole() != User.Role.ADMIN && user.getRole() != User.Role.SUBSCRIBER)) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
         }
 
         WebSite originalWebSite = WebSiteFactory.getInstance().getWebsite(hostname);
 
-        if(originalWebSite.getOwnerId()!= null && originalWebSite.getOwnerId()!= user.getId()){
+        if(user.getRole() != User.Role.ADMIN && (originalWebSite.getOwnerId()== null || originalWebSite.getOwnerId()!= user.getId())){
             return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
         }
 
@@ -238,7 +237,7 @@ public class RestAPIPublishers {
             return Response.status(429).entity("API Usage Limit Exceeded").build();
         }
 
-        if (user == null || user.getRole() != User.Role.ADMIN) {
+        if (user == null || (user.getRole() != User.Role.ADMIN && user.getRole() != User.Role.SUBSCRIBER)) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("No Authorized Access").build();
         }
 
