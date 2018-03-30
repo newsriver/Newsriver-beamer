@@ -53,7 +53,7 @@ public class RestAPISearch {
     @GET
     @Path("/search")
     @Produces(MediaType.APPLICATION_JSON + ";charset=utf-8")
-    @JsonView(APIJSONView.class)
+    @JsonView(APIJSONViewSearch.class)
     public Response search(@HeaderParam("Authorization") String tokenStr, @Context HttpServletResponse servlerResponse, @QueryParam("query") String searchPhrase, @DefaultValue("discoverDate") @QueryParam("sortBy") String sortBy, @DefaultValue("DESC") @QueryParam("sortOrder") SortOrder sortOrder, @DefaultValue("25") @QueryParam("limit") int limit) throws JsonProcessingException {
 
         servlerResponse.addHeader("Allow-Control-Allow-Methods", "GET");
@@ -114,7 +114,7 @@ public class RestAPISearch {
 
 
     //This interface is used to combine all required JSONViews
-    private interface APIJSONView extends Article.JSONViews.API, WebSite.JSONViews.API {
+    private interface APIJSONViewSearch extends Article.JSONViews.API, WebSite.JSONViews.ArticleNested {
     }
 
 }

@@ -109,7 +109,7 @@ public class WebSocketAPIHandler {
     }
 
     //This interface is used to combine all required JSONViews
-    public interface StreemJSONView extends Article.JSONViews.API, WebSite.JSONViews.Public {
+    public interface StreemJSONView extends Article.JSONViews.API, WebSite.JSONViews.ArticleNested {
     }
 
     public static class MyServerConfigurator extends ServerEndpointConfig.Configurator {
