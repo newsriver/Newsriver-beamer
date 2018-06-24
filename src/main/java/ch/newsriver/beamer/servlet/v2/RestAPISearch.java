@@ -66,9 +66,18 @@ public class RestAPISearch {
         }
 
 
-        User user;
+        try {
+            if(TokenFactory.apiRateLimitExceeded(tokenStr)){
+                return Response.status(429).entity("Too Many Requests").build();
+            }
+        } catch (Exception e) {
+            log.error("Unable to verify API Rate Limit",e);
+        }
+
+            User user;
         try {
             TokenFactory tokenFactory = new TokenFactory();
+
             user = tokenFactory.getTokenUser(tokenStr);
         } catch (TokenFactory.TokenVerificationException e) {
             return Response.serverError().entity(e.getMessage()).build();
